@@ -53,6 +53,8 @@
   .error{ color:#f3a1a1; }
   .hidden{ display:none !important; }
   .from-tag{ font-size:14px; opacity:0.8; margin-top:4px; }
+  .foto-preview{ width:100%; border-radius:14px; margin:14px 0; max-height:280px; object-fit:cover; }
+  audio{ width:100%; margin-top:14px; }
 </style>
 </head>
 <body>
@@ -65,8 +67,8 @@
 
 <script>
 // ================== KONFIGURASI ==================
-const SUPABASE_URL = "https://aocgocdsufkfdemujisy.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvY2dvY2RzdWZrZmRlbXVqaXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MTQ1ODgsImV4cCI6MjEwNTA5MDU4OH0.3qT4WwMnpV-Q3zKjipFYaW-rdyEraaQXCc6z7mSiG_4";
+const SUPABASE_URL = "https://aocgocdsufkfdemujisy.supabase.co".trim().replace(/[^\x00-\x7F]/g, '');
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvY2dvY2RzdWZrZmRlbXVqaXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MTQ1ODgsImV4cCI6MjEwNTA5MDU4OH0.3qT4WwMnpV-Q3zKjipFYaW-rdyEraaQXCc6z7mSiG_4".trim().replace(/[^\x00-\x7F]/g, '');
 
 // ================== AMBIL ID DARI URL ==================
 const params = new URLSearchParams(location.search);
@@ -349,10 +351,16 @@ function checkSlider(v){
 }
 
 function renderFinal(){
+  const o = STATE.order;
+  const fotoHtml = o.foto_url ? `<img class="foto-preview" src="${o.foto_url}" alt="Foto kenangan">` : '';
+  const audioHtml = o.musik_url
+    ? `<audio controls src="${o.musik_url}"></audio>`
+    : (o.musik_pilihan ? `<div class="music-tag">🎵 ${o.musik_pilihan}</div>` : '');
   cardEl.innerHTML = `
-    <h1>💌 Untuk ${STATE.order.nama_penerima || 'kamu'}</h1>
+    <h1>💌 Untuk ${o.nama_penerima || 'kamu'}</h1>
+    ${fotoHtml}
     <div class="final-msg">${STATE.finalMessage}</div>
-    ${STATE.order.musik_pilihan ? `<div class="music-tag">🎵 ${STATE.order.musik_pilihan}</div>` : ''}
+    ${audioHtml}
   `;
   launchConfetti();
 }
