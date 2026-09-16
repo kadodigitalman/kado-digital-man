@@ -243,11 +243,23 @@
       }
 
       const data = JSON.parse(bodyText);
+      const newId = data[0].id;
+      const playLink = location.origin + '/play.html?id=' + newId;
       statusEl.className='status-msg success';
-      statusEl.innerHTML = 'BERHASIL! ID pesanan: ' + data[0].id;
+      statusEl.innerHTML = 'BERHASIL! Pesanan tersimpan.<br><br>Link kado untuk dikirim ke penerima:<br>' +
+        '<a href="' + playLink + '" target="_blank" style="word-break:break-all;color:#1f6b34;">' + playLink + '</a>' +
+        '<br><br><button type="button" onclick="navigator.clipboard.writeText(\'' + playLink + '\');this.textContent=\'Tersalin!\'" style="margin-top:8px;padding:8px 14px;border-radius:8px;border:1px solid #1f6b34;background:#fff;color:#1f6b34;font-weight:600;">Salin Link</button>';
 
     }catch(err){
       statusEl.className='status-msg error';
+      statusEl.textContent = 'ERROR JARINGAN: ' + err.message;
+    }
+  });
+</script>
+
+</body>
+</html>
+='status-msg error';
       statusEl.textContent = 'ERROR JARINGAN: ' + err.message;
     }
   });
