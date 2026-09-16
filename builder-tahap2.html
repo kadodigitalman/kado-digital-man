@@ -236,7 +236,7 @@
       statusEl.innerHTML = `Tersimpan! ID pesanan: <code>${data[0].id}</code><br>Cek di Supabase → Table Editor → orders untuk lihat datanya.`;
     }catch(err){
       statusEl.className='status-msg error';
-      statusEl.textContent = 'Gagal simpan: cek lagi SUPABASE_URL / ANON_KEY di kode, atau lihat console browser untuk detail error.';
+      statusEl.textContent = 'Error detail: ' + err.message;
       console.error(err);
     }
   });
