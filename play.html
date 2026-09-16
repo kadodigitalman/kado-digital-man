@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kado Digital Untukmu</title>
+<style>
+  :root{
+    --accent:#E8B94E; --dark:#1B1035; --cream:#FBF6EF; --line:rgba(27,16,53,0.12);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Segoe UI',Roboto,sans-serif; background:var(--dark); color:var(--cream);
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+    background-image: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.06), transparent 40%),
+                       radial-gradient(circle at 80% 80%, rgba(255,255,255,0.06), transparent 40%);
+  }
+  .card{
+    width:100%; max-width:420px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12);
+    border-radius:22px; padding:28px 22px; text-align:center; backdrop-filter:blur(6px);
+  }
+  h1{ font-size:22px; margin:0 0 8px; }
+  p{ line-height:1.6; opacity:0.9; }
+  .muted{ font-size:13px; opacity:0.6; }
+  .btn{
+    display:inline-block; margin-top:18px; padding:14px 28px; border-radius:999px; border:none;
+    background:var(--accent); color:#1B1035; font-weight:700; font-size:15px; cursor:pointer;
+  }
+  .btn:active{ transform:scale(0.97); }
+  .dots{ display:flex; gap:6px; justify-content:center; margin-bottom:18px; }
+  .dot{ width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,0.2); }
+  .dot.active{ background:var(--accent); }
+  .dot.done{ background:rgba(255,255,255,0.5); }
+  .opt{
+    display:block; width:100%; text-align:left; padding:14px 16px; margin:8px 0; border-radius:14px;
+    border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.03); color:var(--cream);
+    font-size:15px; cursor:pointer;
+  }
+  .opt.selected{ border-color:var(--accent); background:rgba(232,185,78,0.15); }
+  .scramble{ font-size:26px; letter-spacing:4px; font-weight:800; margin:18px 0; color:var(--accent); }
+  .letters{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:16px; }
+  .letter-btn{
+    width:42px; height:42px; border-radius:10px; border:1px solid rgba(255,255,255,0.2);
+    background:rgba(255,255,255,0.05); color:var(--cream); font-size:18px; font-weight:700; cursor:pointer;
+  }
+  .letter-btn.used{ opacity:0.25; pointer-events:none; }
+  .answer-slot{ min-height:44px; border-bottom:2px solid var(--accent); font-size:20px; letter-spacing:6px; margin-bottom:16px; }
+  .slider-wrap{ margin:24px 0; }
+  input[type=range]{ width:100%; accent-color:var(--accent); }
+  .final-msg{ text-align:left; white-space:pre-line; line-height:1.8; font-size:15.5px; }
+  .music-tag{ font-size:13px; opacity:0.75; margin-top:14px; }
+  canvas#confetti{ position:fixed; inset:0; pointer-events:none; }
+  .error{ color:#f3a1a1; }
+  .hidden{ display:none !important; }
+  .from-tag{ font-size:14px; opacity:0.8; margin-top:4px; }
+</style>
+</head>
+<body>
+
+<canvas id="confetti" class="hidden"></canvas>
+
+<div class="card" id="card">
+  <p class="muted">Memuat kado...</p>
+</div>
+
+<script>
+// ================== KONFIGURASI ==================
+const SUPABASE_URL = "https://aocgocdsufkfdemujisy.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvY2dvY2RzdWZrZmRlbXVqaXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MTQ1ODgsImV4cCI6MjEwNTA5MDU4OH0.3qT4WwMnpV-Q3zKjipFYaW-rdyEraaQXCc6z7mSiG_4";
+
+// ================== AMBIL ID DARI URL ==================
+const params = new URLSearchParams(location.search);
+const orderId = params.get('id');
+const cardEl = document.getElementById('card');
+
+if(!orderId){
+  cardEl.innerHTML = '<p class="error">Link tidak lengkap. Pastikan link punya ?id=... di belakangnya.</p>';
+} else {
+  loadOrder(orderId);
+}
+
+async function loadOrder(id){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}&select=*`, {
+      headers:{
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    const rows = await res.json();
+    if(!res.ok || !rows.length){
+      cardEl.innerHTML = '<p class="error">Kado tidak ditemukan. Cek kembali link-nya ya.</p>';
+      return;
+    }
+    startExperience(rows[0]);
+  }catch(err){
+    cardEl.innerHTML = '<p class="error">Gagal memuat: ' + err.message + '</p>';
+  }
+}
+
+// ================== SEEDED RANDOM (biar link selalu tampil sama tiap dibuka) ==================
+function hashStr(str){
+  let h = 2166136261;
+  for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(seed){
+  return function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+function pick(rng, arr){ return arr[Math.floor(rng()*arr.length)]; }
+function pickN(rng, arr, n){
+  const copy = [...arr];
+  const out = [];
+  while(out.length < n && copy.length){
+    const i = Math.floor(rng()*copy.length);
+    out.push(copy.splice(i,1)[0]);
+  }
+  return out;
+}
+function shuffle(rng, arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(rng()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+// ================== BANK KONTEN ==================
+const OCCASION = {
+  ultah: {
+    label:'Ulang Tahun', scrambleWord:'BAHAGIA', emojiSet:['🎂','🎉','🎁'], emojiAnswer:'Ulang Tahun',
+    emojiOptions:['Ulang Tahun','Lulus Sekolah','Liburan'],
+    quizQ:(n)=>`Kalau ${n} boleh minta satu permohonan ulang tahun, kira-kira soal apa ya?`,
+    quizOpts:['Kesehatan','Kebahagiaan','Kesuksesan','Rahasia aja 😄'],
+    sliderLabel:(n)=>`Geser untuk kirim doa ulang tahun ke ${n} →`,
+    body:[
+      "Di hari spesial ini, {nama} pantas dapat semua hal baik yang selama ini {nama} usahakan sendiri.",
+      "Semoga tahun baru dalam hidup {nama} dipenuhi hal-hal yang bikin senyum makin lebar.",
+      "Nggak banyak yang bisa {dari} kasih hari ini, tapi doa terbaik pasti selalu ada buat {nama}."
+    ]
+  },
+  anniversary: {
+    label:'Anniversary', scrambleWord:'SETIA', emojiSet:['💑','🌹','⏳'], emojiAnswer:'Anniversary',
+    emojiOptions:['Anniversary','Perpisahan','Pertemuan Pertama'],
+    quizQ:(n)=>`Momen mana yang paling {dari} inget bareng ${n}?`,
+    quizOpts:['Pertemuan pertama','Perjalanan bareng','Hal receh sehari-hari','Semuanya berkesan'],
+    sliderLabel:(n)=>`Geser untuk kirim rasa sayang ke ${n} →`,
+    body:[
+      "Melewati hari demi hari bareng {nama} adalah hal yang {dari} syukuri diam-diam.",
+      "Nggak perlu momen besar, karena hal kecil bareng {nama} udah cukup bikin hari terasa lebih baik.",
+      "Terima kasih sudah bertahan sejauh ini, {nama}. {dari} berharap masih ada banyak cerita lagi ke depannya."
+    ]
+  },
+  wisuda: {
+    label:'Wisuda', scrambleWord:'BANGGA', emojiSet:['🎓','📜','👏'], emojiAnswer:'Wisuda',
+    emojiOptions:['Wisuda','Study Tour','Rapat Kerja'],
+    quizQ:(n)=>`Kira-kira apa yang paling {dari} banggain dari perjuangan ${n} sampai sejauh ini?`,
+    quizOpts:['Kerja kerasnya','Nggak gampang nyerah','Tetap rendah hati','Semuanya!'],
+    sliderLabel:(n)=>`Geser untuk kirim tepuk tangan ke ${n} →`,
+    body:[
+      "Semua begadang, revisi, dan usaha {nama} akhirnya terbayar hari ini.",
+      "{dari} tahu perjalanan {nama} sampai di titik ini nggak mudah, dan itu yang bikin momen ini terasa pantas dirayakan.",
+      "Selamat {nama}, satu babak selesai — semoga yang berikutnya juga sama membanggakannya."
+    ]
+  },
+  maaf: {
+    label:'Permintaan Maaf', scrambleWord:'MAAF', emojiSet:['🙏','🕊️','💌'], emojiAnswer:'Minta Maaf',
+    emojiOptions:['Minta Maaf','Ucapan Selamat','Undangan'],
+    quizQ:(n)=>`Kalau boleh jujur, gimana perasaan {dari} soal apa yang udah terjadi sama ${n}?`,
+    quizOpts:['Menyesal','Pengen memperbaiki','Masih peduli','Semuanya benar'],
+    sliderLabel:(n)=>`Geser kalau ${n} bersedia baca pesan ini →`,
+    body:[
+      "{dari} sadar ada yang perlu diperbaiki, dan permintaan maaf ini datang dari hati, bukan sekadar formalitas.",
+      "Kalau ada yang bikin {nama} kecewa, {dari} minta maaf — dan berharap masih ada ruang untuk memperbaiki ini.",
+      "Nggak ada niat menyakiti {nama}. {dari} cuma berharap pesan kecil ini bisa jadi awal yang lebih baik."
+    ]
+  }
+};
+
+const TONE = {
+  Romantis: {
+    opener:["Untuk seseorang yang selalu {dari} pikirkan,", "Ada sesuatu yang {dari} ingin {nama} tahu,", "Sebelum {nama} baca lebih jauh, tarik napas dulu ya —"],
+    closer:["Dengan sayang,\n{dari}", "Selalu ada di hati,\n{dari}", "Peluk jarak jauh dari {dari}"]
+  },
+  Lucu: {
+    opener:["Woy {nama}! Siap-siap baper level rendah ya 😄", "Sebelum baca ini, senyum dulu wajib hukumnya 🙃", "{nama}, ini bukan spam, serius ini penting!"],
+    closer:["Dadah, jangan kangen berlebihan ya~\n{dari}", "Sekian dan terima kasih,\n{dari} yang receh tapi tulus", "Bucin mode: on.\n{dari}"]
+  },
+  Cool: {
+    opener:["Hai {nama}.", "Oke, langsung aja ya {nama}.", "Nggak pakai basa-basi, {nama}."],
+    closer:["Segitu aja.\n{dari}", "Simpel, tapi tulus.\n{dari}", "— {dari}"]
+  },
+  Formal: {
+    opener:["Kepada {nama} yang terhormat,", "Dengan penuh rasa hormat, {nama},", "Izinkan {dari} menyampaikan beberapa kata untuk {nama},"]
+  }
+};
+TONE.Formal.closer = ["Hormat kami,\n{dari}", "Dengan tulus,\n{dari}", "Salam hangat,\n{dari}"];
+
+function fillTemplate(str, order){
+  return str
+    .replace(/\{nama\}/g, order.nama_penerima || 'kamu')
+    .replace(/\{dari\}/g, order.dari || 'seseorang')
+    .replace(/\{tanggal\}/g, order.tanggal_spesial ? formatTanggal(order.tanggal_spesial) : '');
+}
+function formatTanggal(d){
+  try{
+    return new Date(d).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
+  }catch(e){ return d; }
+}
+
+// ================== GENERATE GAME CONTENT ==================
+function generateGameContent(order){
+  const seed = hashStr(order.id + (order.template_id||'') + (order.gaya_kata||''));
+  const rng = mulberry32(seed);
+  const occ = OCCASION[order.template_id] || OCCASION.ultah;
+  const tone = TONE[order.gaya_kata] || TONE.Cool;
+
+  const allGameTypes = ['quiz','scramble','emoji','slider'];
+  const chosenGames = pickN(rng, allGameTypes, 3);
+
+  const opener = fillTemplate(pick(rng, tone.opener), order);
+  const closer = fillTemplate(pick(rng, tone.closer), order);
+  let body = fillTemplate(pick(rng, occ.body), order);
+  if(order.pesan_tambahan && order.pesan_tambahan.trim()){
+    body += `\n\n"${order.pesan_tambahan.trim()}"`;
+  }
+  const finalMessage = `${opener}\n\n${body}\n\n${closer}`;
+
+  return { rng, occ, tone, chosenGames, finalMessage };
+}
+
+// ================== RENDER ENGINE ==================
+let STATE = null;
+let stepIndex = -1; // -1 = intro
+
+function startExperience(order){
+  document.documentElement.style.setProperty('--accent', order.warna_pilihan || '#E8B94E');
+  STATE = { order, ...generateGameContent(order) };
+  renderIntro();
+}
+
+function renderIntro(){
+  cardEl.innerHTML = `
+    <h1>🎁 Ada kado untuk ${STATE.order.nama_penerima || 'kamu'}</h1>
+    <p class="from-tag">dari ${STATE.order.dari || 'seseorang spesial'}</p>
+    <p class="muted">Selesaikan beberapa tantangan kecil dulu untuk membukanya.</p>
+    <button class="btn" onclick="nextStep()">Mulai 🎈</button>
+  `;
+}
+
+function renderDots(){
+  const total = STATE.chosenGames.length;
+  let html = '<div class="dots">';
+  for(let i=0;i<total;i++){
+    html += `<div class="dot ${i<stepIndex?'done':''} ${i===stepIndex?'active':''}"></div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+function nextStep(){
+  stepIndex++;
+  if(stepIndex >= STATE.chosenGames.length){
+    renderFinal();
+    return;
+  }
+  const type = STATE.chosenGames[stepIndex];
+  if(type === 'quiz') renderQuiz();
+  else if(type === 'scramble') renderScramble();
+  else if(type === 'emoji') renderEmoji();
+  else if(type === 'slider') renderSlider();
+}
+
+function renderQuiz(){
+  const { occ, order, rng } = STATE;
+  const q = fillTemplate(occ.quizQ(order.nama_penerima||'kamu'), order);
+  const opts = shuffle(rng, occ.quizOpts);
+  cardEl.innerHTML = `
+    ${renderDots()}
+    <p>${q}</p>
+    <div id="optWrap">${opts.map(o=>`<button class="opt" onclick="selectOpt(this)">${o}</button>`).join('')}</div>
+    <button class="btn hidden" id="continueBtn" onclick="nextStep()">Lanjut →</button>
+  `;
+}
+function selectOpt(el){
+  document.querySelectorAll('.opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('continueBtn').classList.remove('hidden');
+}
+
+function renderScramble(){
+  const { occ, rng } = STATE;
+  const word = occ.scrambleWord;
+  const letters = shuffle(rng, word.split(''));
+  cardEl.innerHTML = `
+    ${renderDots()}
+    <p>Susun huruf berikut jadi satu kata:</p>
+    <div class="answer-slot" id="answerSlot"></div>
+    <div class="letters" id="letterWrap">
+      ${letters.map((l,i)=>`<button class="letter-btn" id="ltr${i}" onclick="pickLetter(${i},'${l}')">${l}</button>`).join('')}
+    </div>
+    <button class="btn hidden" id="continueBtn" onclick="nextStep()">Lanjut →</button>
+  `;
+  window.__answer = '';
+  window.__target = word;
+}
+function pickLetter(i, l){
+  document.getElementById('ltr'+i).classList.add('used');
+  window.__answer += l;
+  document.getElementById('answerSlot').textContent = window.__answer;
+  if(window.__answer.length === window.__target.length){
+    document.getElementById('continueBtn').classList.remove('hidden');
+  }
+}
+
+function renderEmoji(){
+  const { occ, rng } = STATE;
+  const opts = shuffle(rng, occ.emojiOptions);
+  cardEl.innerHTML = `
+    ${renderDots()}
+    <p>Emoji ini menggambarkan momen apa?</p>
+    <div class="scramble">${occ.emojiSet.join(' ')}</div>
+    <div id="optWrap">${opts.map(o=>`<button class="opt" onclick="selectOpt(this)">${o}</button>`).join('')}</div>
+    <button class="btn hidden" id="continueBtn" onclick="nextStep()">Lanjut →</button>
+  `;
+}
+
+function renderSlider(){
+  const { occ, order } = STATE;
+  cardEl.innerHTML = `
+    ${renderDots()}
+    <p>${fillTemplate(occ.sliderLabel(order.nama_penerima||'kamu'), order)}</p>
+    <div class="slider-wrap">
+      <input type="range" min="0" max="100" value="0" id="sliderInput" oninput="checkSlider(this.value)">
+    </div>
+    <button class="btn hidden" id="continueBtn" onclick="nextStep()">Lanjut →</button>
+  `;
+}
+function checkSlider(v){
+  if(v >= 95){
+    document.getElementById('continueBtn').classList.remove('hidden');
+  }
+}
+
+function renderFinal(){
+  cardEl.innerHTML = `
+    <h1>💌 Untuk ${STATE.order.nama_penerima || 'kamu'}</h1>
+    <div class="final-msg">${STATE.finalMessage}</div>
+    ${STATE.order.musik_pilihan ? `<div class="music-tag">🎵 ${STATE.order.musik_pilihan}</div>` : ''}
+  `;
+  launchConfetti();
+}
+
+// ================== CONFETTI ==================
+function launchConfetti(){
+  const canvas = document.getElementById('confetti');
+  canvas.classList.remove('hidden');
+  canvas.width = innerWidth; canvas.height = innerHeight;
+  const ctx = canvas.getContext('2d');
+  const colors = ['#E8B94E','#D98A94','#7FA8D9','#A3B9A3','#C9B6E4','#F2A65A'];
+  let particles = Array.from({length:80}, () => ({
+    x: Math.random()*canvas.width, y: -20 - Math.random()*canvas.height,
+    r: 4 + Math.random()*4, c: colors[Math.floor(Math.random()*colors.length)],
+    vy: 2 + Math.random()*3, vx: -1 + Math.random()*2, rot: Math.random()*360
+  }));
+  let frames = 0;
+  function tick(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      p.y += p.vy; p.x += p.vx; p.rot += 4;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle = p.c; ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r); ctx.restore();
+    });
+    frames++;
+    if(frames < 220) requestAnimationFrame(tick);
+    else canvas.classList.add('hidden');
+  }
+  tick();
+}
+</script>
+</body>
+</html>
