@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kado Digital — Builder (Tahap 2)</title>
+<title>Kado Digital — Builder (Tahap 2 Debug)</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -16,11 +16,12 @@
   header h1{ font-family:'Fraunces', serif; font-weight:700; font-size:24px; margin-top:6px; }
   header p{ font-size:13px; color:rgba(58,33,69,0.6); margin-top:6px; }
 
-  .config-box{
+  .debug-box{
     margin:0 18px 22px; padding:14px 16px; border-radius:12px;
-    background:#fff3d6; border:1px solid #f0d896; font-size:12px; line-height:1.6;
+    background:#EAF2FF; border:1px solid #B9D3F5; font-size:11.5px; line-height:1.7;
+    word-break: break-all; font-family: monospace;
   }
-  .config-box code{ background:rgba(0,0,0,0.06); padding:1px 5px; border-radius:4px; }
+  .debug-box b{ font-family:'Inter', sans-serif; font-size:12px; }
 
   .section{ padding:0 18px; margin-top:22px; }
   .section-title{ font-size:13px; font-weight:700; margin-bottom:12px; }
@@ -40,7 +41,6 @@
 
   .field{ margin-bottom:16px; }
   .field label{ display:block; font-size:12.5px; font-weight:600; margin-bottom:7px; }
-  .field-hint{ font-size:11px; color:rgba(58,33,69,0.5); margin-top:5px; }
   .field input[type=text], .field input[type=date], .field textarea, .field select{
     width:100%; border:1.5px solid var(--line); border-radius:12px; padding:12px 14px;
     font-family:'Inter',sans-serif; font-size:14px; background:#fff; color:var(--plum);
@@ -64,10 +64,10 @@
     background:var(--plum); color:#fff; border:none; border-radius:100px;
     padding:16px; font-weight:700; font-size:14.5px; font-family:'Inter',sans-serif; cursor:pointer;
   }
-  .btn-save:disabled{ opacity:0.5; }
 
   .status-msg{
-    margin:14px 18px 0; padding:14px 16px; border-radius:12px; font-size:13px; line-height:1.6; display:none;
+    margin:14px 18px 0; padding:14px 16px; border-radius:12px; font-size:12.5px; line-height:1.7; display:none;
+    font-family: monospace; word-break: break-all;
   }
   .status-msg.success{ background:#e5f5e8; color:#1f6b34; display:block; }
   .status-msg.error{ background:#fbe6e6; color:#9c2b2b; display:block; }
@@ -76,13 +76,14 @@
 <body>
 
 <header>
-  <div class="tag">Tahap 2 · Terhubung ke database</div>
+  <div class="tag">Tahap 2 · Mode Debug</div>
   <h1>Bikin Kado Digitalmu</h1>
-  <p>Sekali submit, datanya beneran tersimpan.</p>
+  <p>Versi ini nampilin info teknis buat cari tahu penyebab error.</p>
 </header>
 
-<div class="config-box">
-  ⚙️ <strong>Buat kamu (developer):</strong> isi <code>SUPABASE_URL</code> dan <code>SUPABASE_ANON_KEY</code> di bagian bawah kode ini dengan nilai dari Supabase (Settings → API), lalu hapus kotak ini kalau sudah tidak perlu.
+<div class="debug-box" id="debugBox">
+  <b>Info konfigurasi saat ini:</b><br>
+  Memuat...
 </div>
 
 <div class="section">
@@ -111,8 +112,7 @@
 
   <div class="field">
     <label>Kata-kata Tambahan (opsional)</label>
-    <textarea id="inputPesan" placeholder="Kenangan, candaan, atau hal spesifik yang mau disebut di ucapan..."></textarea>
-    <div class="field-hint">Nggak perlu ditulis rapi — nanti AI yang rangkai jadi kata-kata utuh sesuai gaya yang kamu pilih.</div>
+    <textarea id="inputPesan" placeholder="Kenangan, candaan, atau hal spesifik..."></textarea>
   </div>
 
   <div class="field">
@@ -136,16 +136,10 @@
       <option value="">Tanpa musik</option>
       <option value="Perfect - Ed Sheeran">Perfect — Ed Sheeran</option>
       <option value="Sempurna - Andra & The Backbone">Sempurna — Andra & The Backbone</option>
-      <option value="Photograph - Ed Sheeran">Photograph — Ed Sheeran</option>
     </select>
   </div>
 
-  <div class="field">
-    <label>Foto (opsional — penyimpanan beneran nyusul di Tahap 4)</label>
-    <input type="file" id="inputFoto" accept="image/*">
-  </div>
-
-  <button class="btn-save" id="btnSave">Simpan Pesanan</button>
+  <button class="btn-save" id="btnSave">Simpan Pesanan (Debug)</button>
   <div class="status-msg" id="statusMsg"></div>
 </div>
 
@@ -157,7 +151,6 @@
     { id:'maaf', name:'Permintaan Maaf', desc:'Lembut & tulus', bg:'linear-gradient(135deg,#2E3440,#A3B9A3)' },
   ];
   const colors = ['#E8B94E','#D98A94','#7FA8D9','#A3B9A3','#C9B6E4','#F2A65A'];
-
   let state = { template:null, style:null, warna:null };
 
   const grid = document.getElementById('templateGrid');
@@ -196,8 +189,18 @@
   });
 
   // ⚙️ GANTI DUA NILAI INI DENGAN MILIK KAMU DARI SUPABASE (Settings → API)
-  const SUPABASE_URL = "‎https://aocgocdsufkfdemujisy.supabase.co";
+  const SUPABASE_URL = "https://aocgocdsufkfdemujisy.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvY2dvY2RzdWZrZmRlbXVqaXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MTQ1ODgsImV4cCI6MjEwNTA5MDU4OH0.3qT4WwMnpV-Q3zKjipFYaW-rdyEraaQXCc6z7mSiG_4";
+
+  const TARGET = SUPABASE_URL + "/rest/v1/orders";
+
+  // Tampilkan info konfigurasi langsung di layar (buat debugging)
+  document.getElementById('debugBox').innerHTML =
+    '<b>Info konfigurasi saat ini:</b><br>' +
+    'SUPABASE_URL panjang: ' + SUPABASE_URL.length + ' karakter<br>' +
+    'SUPABASE_URL: ' + SUPABASE_URL + '<br>' +
+    'ANON_KEY panjang: ' + SUPABASE_ANON_KEY.length + ' karakter<br>' +
+    'Target fetch: ' + TARGET;
 
   document.getElementById('btnSave').addEventListener('click', async ()=>{
     const statusEl = document.getElementById('statusMsg');
@@ -220,7 +223,7 @@
     };
 
     try{
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
+      const res = await fetch(TARGET, {
         method:'POST',
         headers:{
           'Content-Type':'application/json',
@@ -230,14 +233,22 @@
         },
         body: JSON.stringify(payload)
       });
-      if(!res.ok){ throw new Error(await res.text()); }
-      const data = await res.json();
+
+      const bodyText = await res.text();
+
+      if(!res.ok){
+        statusEl.className='status-msg error';
+        statusEl.textContent = 'GAGAL — status: ' + res.status + ' | url respons: ' + res.url + ' | isi respons: ' + bodyText.slice(0,300);
+        return;
+      }
+
+      const data = JSON.parse(bodyText);
       statusEl.className='status-msg success';
-      statusEl.innerHTML = `Tersimpan! ID pesanan: <code>${data[0].id}</code><br>Cek di Supabase → Table Editor → orders untuk lihat datanya.`;
+      statusEl.innerHTML = 'BERHASIL! ID pesanan: ' + data[0].id;
+
     }catch(err){
       statusEl.className='status-msg error';
-      statusEl.textContent = 'Error detail: ' + err.message;
-      console.error(err);
+      statusEl.textContent = 'ERROR JARINGAN: ' + err.message;
     }
   });
 </script>
