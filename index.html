@@ -139,6 +139,16 @@
     </select>
   </div>
 
+  <div class="field">
+    <label>Upload Foto (opsional)</label>
+    <input type="file" id="inputFoto" accept="image/*">
+  </div>
+
+  <div class="field">
+    <label>Upload File Musik (opsional, menggantikan pilihan di atas)</label>
+    <input type="file" id="inputMusikFile" accept="audio/*">
+  </div>
+
   <button class="btn-save" id="btnSave">Simpan Pesanan (Debug)</button>
   <div class="status-msg" id="statusMsg"></div>
 </div>
@@ -190,7 +200,7 @@
 
   // ⚙️ GANTI DUA NILAI INI DENGAN MILIK KAMU DARI SUPABASE (Settings → API)
   const SUPABASE_URL = "https://aocgocdsufkfdemujisy.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvY2dvY2RzdWZrZmRlbXVqaXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MTQ1ODgsImV4cCI6MjEwNTA5MDU4OH0.3qT4WwMnpV-Q3zKjipFYaW-rdyEraaQXCc6z7mSiG_4";
+  const SUPABASE_ANON_KEY = "‎eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvY2dvY2RzdWZrZmRlbXVqaXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MTQ1ODgsImV4cCI6MjEwNTA5MDU4OH0.3qT4WwMnpV-Q3zKjipFYaW-rdyEraaQXCc6z7mSiG_4";
 
   const TARGET = SUPABASE_URL + "/rest/v1/orders";
 
@@ -202,6 +212,27 @@
     'ANON_KEY panjang: ' + SUPABASE_ANON_KEY.length + ' karakter<br>' +
     'Target fetch: ' + TARGET;
 
+  const STORAGE_BUCKET = 'kado-uploads';
+
+  async function uploadFile(file, folder){
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const path = folder + '/' + Date.now() + '_' + safeName;
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${path}`, {
+      method:'POST',
+      headers:{
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': file.type
+      },
+      body: file
+    });
+    if(!res.ok){
+      const errText = await res.text();
+      throw new Error('Upload ' + folder + ' gagal: ' + errText.slice(0,200));
+    }
+    return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
+  }
+
   document.getElementById('btnSave').addEventListener('click', async ()=>{
     const statusEl = document.getElementById('statusMsg');
     statusEl.className = 'status-msg';
@@ -209,6 +240,9 @@
     if(!state.template){
       statusEl.className='status-msg error'; statusEl.textContent='Pilih template dulu ya.'; return;
     }
+
+    const fotoFile = document.getElementById('inputFoto').files[0];
+    const musikFile = document.getElementById('inputMusikFile').files[0];
 
     const payload = {
       template_id: state.template,
@@ -223,6 +257,18 @@
     };
 
     try{
+      if(fotoFile){
+        statusEl.className='status-msg';
+        statusEl.textContent='Mengunggah foto...';
+        payload.foto_url = await uploadFile(fotoFile, 'foto');
+      }
+      if(musikFile){
+        statusEl.className='status-msg';
+        statusEl.textContent='Mengunggah musik...';
+        payload.musik_url = await uploadFile(musikFile, 'musik');
+      }
+      statusEl.textContent='Menyimpan pesanan...';
+
       const res = await fetch(TARGET, {
         method:'POST',
         headers:{
@@ -252,14 +298,6 @@
 
     }catch(err){
       statusEl.className='status-msg error';
-      statusEl.textContent = 'ERROR JARINGAN: ' + err.message;
-    }
-  });
-</script>
-
-</body>
-</html>
-='status-msg error';
       statusEl.textContent = 'ERROR JARINGAN: ' + err.message;
     }
   });
