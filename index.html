@@ -200,7 +200,7 @@
 
   // ⚙️ GANTI DUA NILAI INI DENGAN MILIK KAMU DARI SUPABASE (Settings → API)
   const SUPABASE_URL = "https://aocgocdsufkfdemujisy.supabase.co".trim().replace(/[^\x00-\x7F]/g, '');
-  const SUPABASE_ANON_KEY = "‎eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvY2dvY2RzdWZrZmRlbXVqaXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MTQ1ODgsImV4cCI6MjEwNTA5MDU4OH0.3qT4WwMnpV-Q3zKjipFYaW-rdyEraaQXCc6z7mSiG_4".trim().replace(/[^\x00-\x7F]/g, '');
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvY2dvY2RzdWZrZmRlbXVqaXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MTQ1ODgsImV4cCI6MjEwNTA5MDU4OH0.3qT4WwMnpV-Q3zKjipFYaW-rdyEraaQXCc6z7mSiG_4".trim().replace(/[^\x00-\x7F]/g, '');
 
   const TARGET = SUPABASE_URL + "/rest/v1/orders";
 
@@ -294,7 +294,29 @@
       statusEl.className='status-msg success';
       statusEl.innerHTML = 'BERHASIL! Pesanan tersimpan.<br><br>Link kado untuk dikirim ke penerima:<br>' +
         '<a href="' + playLink + '" target="_blank" style="word-break:break-all;color:#1f6b34;">' + playLink + '</a>' +
-        '<br><br><button type="button" onclick="navigator.clipboard.writeText(\'' + playLink + '\');this.textContent=\'Tersalin!\'" style="margin-top:8px;padding:8px 14px;border-radius:8px;border:1px solid #1f6b34;background:#fff;color:#1f6b34;font-weight:600;">Salin Link</button>';
+        '<br><br><button type="button" onclick="navigator.clipboard.writeText(\'' + playLink + '\');this.textContent=\'Tersalin!\'" style="margin-top:8px;padding:8px 14px;border-radius:8px;border:1px solid #1f6b34;background:#fff;color:#1f6b34;font-weight:600;">Salin Link</button>' +
+        '<br><br><button type="button" id="btnBayar" style="padding:10px 18px;border-radius:8px;border:none;background:#1B1035;color:#fff;font-weight:700;">Bayar Sekarang</button>' +
+        '<span id="bayarStatus" style="display:block;margin-top:6px;font-size:13px;"></span>';
+
+      document.getElementById('btnBayar').addEventListener('click', async ()=>{
+        const bayarStatusEl = document.getElementById('bayarStatus');
+        bayarStatusEl.textContent = 'Menyiapkan pembayaran...';
+        try{
+          const txRes = await fetch('/api/create-transaction', {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body: JSON.stringify({ order_id: newId })
+          });
+          const txData = await txRes.json();
+          if(txData.redirect_url){
+            location.href = txData.redirect_url;
+          } else {
+            bayarStatusEl.textContent = 'Gagal membuat pembayaran: ' + JSON.stringify(txData.error);
+          }
+        }catch(err){
+          bayarStatusEl.textContent = 'Error: ' + err.message;
+        }
+      });
 
     }catch(err){
       statusEl.className='status-msg error';
