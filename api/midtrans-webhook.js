@@ -25,6 +25,7 @@ export default async function handler(req, res) {
     .digest('hex');
 
   if (signature_key !== expectedSignature) {
+    console.log('Signature mismatch. order_id:', order_id, '| expected:', expectedSignature, '| received:', signature_key);
     return res.status(403).json({ error: 'Signature tidak valid' });
   }
 
@@ -38,16 +39,23 @@ export default async function handler(req, res) {
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${order_id}`, {
+  const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${order_id}`, {
     method: 'PATCH',
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY,
       Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       'Content-Type': 'application/json',
-      Prefer: 'return=minimal'
+      Prefer: 'return=representation'
     },
     body: JSON.stringify({ payment_status: newStatus })
   });
 
-  return res.status(200).json({ ok: true });
+  const updateBody = await updateRes.text();
+  console.log('Update order_id:', order_id, '| newStatus:', newStatus, '| Supabase response status:', updateRes.status, '| body:', updateBody);
+
+  if (!updateRes.ok) {
+    return res.status(500).json({ error: 'Gagal update Supabase', detail: updateBody });
+  }
+
+  return res.status(200).json({ ok: true, updated: updateBody });
 }
