@@ -214,6 +214,14 @@
 
   const STORAGE_BUCKET = 'kado-uploads';
 
+  function generateUUID(){
+    if(crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c=>{
+      const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8);
+      return v.toString(16);
+    });
+  }
+
   async function uploadFile(file, folder){
     const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
     const path = folder + '/' + Date.now() + '_' + safeName;
@@ -243,8 +251,10 @@
 
     const fotoFile = document.getElementById('inputFoto').files[0];
     const musikFile = document.getElementById('inputMusikFile').files[0];
+    const newId = generateUUID();
 
     const payload = {
+      id: newId,
       template_id: state.template,
       nama_penerima: document.getElementById('inputNama').value,
       dari: document.getElementById('inputDari').value,
@@ -275,21 +285,18 @@
           'Content-Type':'application/json',
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Prefer':'return=representation'
+          'Prefer':'return=minimal'
         },
         body: JSON.stringify(payload)
       });
 
-      const bodyText = await res.text();
-
       if(!res.ok){
+        const bodyText = await res.text();
         statusEl.className='status-msg error';
         statusEl.textContent = 'GAGAL — status: ' + res.status + ' | url respons: ' + res.url + ' | isi respons: ' + bodyText.slice(0,300);
         return;
       }
 
-      const data = JSON.parse(bodyText);
-      const newId = data[0].id;
       const playLink = location.origin + '/play.html?id=' + newId;
       statusEl.className='status-msg success';
       statusEl.innerHTML = 'BERHASIL! Pesanan tersimpan.<br><br>Link kado untuk dikirim ke penerima:<br>' +
