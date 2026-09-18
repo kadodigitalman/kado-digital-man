@@ -91,7 +91,11 @@ async function loadOrder(id){
     });
     const rows = await res.json();
     if(!res.ok || !rows.length){
-      cardEl.innerHTML = '<p class="error">Kado tidak ditemukan. Cek kembali link-nya ya.</p>';
+      cardEl.innerHTML = `
+        <h1>🔒 Kado belum bisa dibuka</h1>
+        <p>Kado ini mungkin belum aktif — bisa jadi pembayarannya belum selesai, atau link-nya keliru.</p>
+        <p class="muted">Kalau kamu pengirimnya, cek status pembayaran pesanan kamu dulu ya.</p>
+      `;
       return;
     }
     startExperience(rows[0]);
