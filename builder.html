@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kado Digital — Builder (Tahap 2 Debug)</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plum:#3A2145; --peach:#F2A65A; --cream:#FBF6EF; --line: rgba(58,33,69,0.12);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'Inter', sans-serif; background: var(--cream); color: var(--plum); min-height:100vh; padding-bottom:60px; }
+  header{ padding:22px 20px 18px; text-align:center; }
+  header .tag{ font-size:12px; color:var(--peach); font-weight:700; letter-spacing:0.06em; text-transform:uppercase; }
+  header h1{ font-family:'Fraunces', serif; font-weight:700; font-size:24px; margin-top:6px; }
+  header p{ font-size:13px; color:rgba(58,33,69,0.6); margin-top:6px; }
+
+  .debug-box{
+    margin:0 18px 22px; padding:14px 16px; border-radius:12px;
+    background:#EAF2FF; border:1px solid #B9D3F5; font-size:11.5px; line-height:1.7;
+    word-break: break-all; font-family: monospace;
+  }
+  .debug-box b{ font-family:'Inter', sans-serif; font-size:12px; }
+
+  .section{ padding:0 18px; margin-top:22px; }
+  .section-title{ font-size:13px; font-weight:700; margin-bottom:12px; }
+
+  .template-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .tpl-card{
+    border:2px solid transparent; border-radius:16px; padding:16px 14px; cursor:pointer;
+    text-align:left; background:#fff; box-shadow: 0 1px 3px rgba(58,33,69,0.08);
+  }
+  .tpl-card.selected{ border-color:var(--peach); }
+  .tpl-swatch{ width:100%; height:44px; border-radius:10px; margin-bottom:10px; }
+  .tpl-name{ font-family:'Fraunces', serif; font-weight:600; font-size:15px; }
+  .tpl-desc{ font-size:11.5px; color:rgba(58,33,69,0.55); margin-top:3px; }
+
+  .editor{ display:none; }
+  .editor.active{ display:block; }
+
+  .field{ margin-bottom:16px; }
+  .field label{ display:block; font-size:12.5px; font-weight:600; margin-bottom:7px; }
+  .field input[type=text], .field input[type=date], .field textarea, .field select{
+    width:100%; border:1.5px solid var(--line); border-radius:12px; padding:12px 14px;
+    font-family:'Inter',sans-serif; font-size:14px; background:#fff; color:var(--plum);
+  }
+  .field textarea{ min-height:70px; resize:vertical; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+  .swatch-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .swatch{ width:38px; height:38px; border-radius:50%; cursor:pointer; border:3px solid transparent; }
+  .swatch.selected{ border-color:var(--plum); }
+
+  .style-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .style-btn{
+    padding:12px; border-radius:12px; border:1.5px solid var(--line); background:#fff;
+    font-size:13px; font-weight:600; cursor:pointer; text-align:center;
+  }
+  .style-btn.selected{ border-color:var(--peach); background:#FFF3E4; }
+
+  .btn-save{
+    display:block; width:calc(100% - 36px); margin:24px 18px 0;
+    background:var(--plum); color:#fff; border:none; border-radius:100px;
+    padding:16px; font-weight:700; font-size:14.5px; font-family:'Inter',sans-serif; cursor:pointer;
+  }
+
+  .status-msg{
+    margin:14px 18px 0; padding:14px 16px; border-radius:12px; font-size:12.5px; line-height:1.7; display:none;
+    font-family: monospace; word-break: break-all;
+  }
+  .status-msg.success{ background:#e5f5e8; color:#1f6b34; display:block; }
+  .status-msg.error{ background:#fbe6e6; color:#9c2b2b; display:block; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Bikin Kado Digitalmu</h1>
+  <p>Pilih tema, ceritain pesannya, dan kirim link-nya.</p>
+</header>
+
+<div class="section">
+  <div class="section-title">1. Pilih Template</div>
+  <div class="template-grid" id="templateGrid"></div>
+</div>
+
+<div class="section editor" id="editorSection">
+  <div class="section-title">2. Detail Momen</div>
+
+  <div class="field">
+    <label>Nama Penerima</label>
+    <input type="text" id="inputNama" placeholder="misal: Aisyah">
+  </div>
+
+  <div class="row2">
+    <div class="field">
+      <label>Dari Siapa</label>
+      <input type="text" id="inputDari" placeholder="misal: Raka">
+    </div>
+    <div class="field">
+      <label>Tanggal Spesial</label>
+      <input type="date" id="inputTanggal">
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Kata-kata Tambahan (opsional)</label>
+    <textarea id="inputPesan" placeholder="Kenangan, candaan, atau hal spesifik..."></textarea>
+  </div>
+
+  <div class="field">
+    <label>Gaya Kata-kata</label>
+    <div class="style-grid" id="styleGrid">
+      <div class="style-btn" data-style="Romantis">💗 Romantis</div>
+      <div class="style-btn" data-style="Lucu">😄 Lucu</div>
+      <div class="style-btn" data-style="Cool">😎 Cool & Santai</div>
+      <div class="style-btn" data-style="Formal">🎓 Formal</div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Warna Tema</label>
+    <div class="swatch-row" id="swatchRow"></div>
+  </div>
+
+  <div class="field">
+    <label>Musik Latar (opsional)</label>
+    <select id="inputMusik">
+      <option value="">Tanpa musik</option>
+      <option value="Perfect - Ed Sheeran">Perfect — Ed Sheeran</option>
+      <option value="Sempurna - Andra & The Backbone">Sempurna — Andra & The Backbone</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label>Upload Foto (opsional)</label>
+    <input type="file" id="inputFoto" accept="image/*">
+  </div>
+
+  <div class="field">
+    <label>Upload File Musik (opsional, menggantikan pilihan di atas)</label>
+    <input type="file" id="inputMusikFile" accept="audio/*">
+  </div>
+
+  <button class="btn-save" id="btnSave">Simpan & Lanjut Bayar</button>
+  <div class="status-msg" id="statusMsg"></div>
+</div>
+
+<script>
+  const templates = [
+    { id:'ultah', name:'Ulang Tahun', desc:'Ceria & playful', bg:'linear-gradient(135deg,#1B1035,#E8B94E)' },
+    { id:'anniversary', name:'Anniversary', desc:'Romantis & hangat', bg:'linear-gradient(135deg,#2B0F14,#D98A94)' },
+    { id:'wisuda', name:'Wisuda', desc:'Formal & membanggakan', bg:'linear-gradient(135deg,#0E1A32,#E3B23C)' },
+    { id:'maaf', name:'Permintaan Maaf', desc:'Lembut & tulus', bg:'linear-gradient(135deg,#2E3440,#A3B9A3)' },
+  ];
+  const colors = ['#E8B94E','#D98A94','#7FA8D9','#A3B9A3','#C9B6E4','#F2A65A'];
+  let state = { template:null, style:null, warna:null };
+
+  const grid = document.getElementById('templateGrid');
+  const preselect = new URLSearchParams(location.search).get('template');
+  templates.forEach(t=>{
+    const card = document.createElement('div');
+    card.className='tpl-card';
+    card.innerHTML = `<div class="tpl-swatch" style="background:${t.bg}"></div>
+      <div class="tpl-name">${t.name}</div><div class="tpl-desc">${t.desc}</div>`;
+    card.onclick = ()=>{
+      state.template = t.id;
+      document.querySelectorAll('.tpl-card').forEach(c=>c.classList.remove('selected'));
+      card.classList.add('selected');
+      document.getElementById('editorSection').classList.add('active');
+    };
+    grid.appendChild(card);
+    if(preselect === t.id){ card.click(); }
+  });
+
+  document.querySelectorAll('.style-btn').forEach(btn=>{
+    btn.onclick = ()=>{
+      state.style = btn.dataset.style;
+      document.querySelectorAll('.style-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+    };
+  });
+
+  const swatchRow = document.getElementById('swatchRow');
+  colors.forEach(c=>{
+    const s = document.createElement('div');
+    s.className='swatch'; s.style.background = c;
+    s.onclick = ()=>{
+      state.warna = c;
+      document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('selected'));
+      s.classList.add('selected');
+    };
+    swatchRow.appendChild(s);
+  });
+
+  // ⚙️ GANTI DUA NILAI INI DENGAN MILIK KAMU DARI SUPABASE (Settings → API)
+  const SUPABASE_URL = "https://aocgocdsufkfdemujisy.supabase.co".trim().replace(/[^\x00-\x7F]/g, '');
+  const SUPABASE_ANON_KEY = "PASTE_ANON_KEY_LENGKAP_DI_SINI".trim().replace(/[^\x00-\x7F]/g, '');
+
+  const TARGET = SUPABASE_URL + "/rest/v1/orders";
+
+  const STORAGE_BUCKET = 'kado-uploads';
+
+  function generateUUID(){
+    if(crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c=>{
+      const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8);
+      return v.toString(16);
+    });
+  }
+
+  async function uploadFile(file, folder){
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const path = folder + '/' + Date.now() + '_' + safeName;
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${path}`, {
+      method:'POST',
+      headers:{
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': file.type
+      },
+      body: file
+    });
+    if(!res.ok){
+      const errText = await res.text();
+      throw new Error('Upload ' + folder + ' gagal: ' + errText.slice(0,200));
+    }
+    return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
+  }
+
+  document.getElementById('btnSave').addEventListener('click', async ()=>{
+    const statusEl = document.getElementById('statusMsg');
+    statusEl.className = 'status-msg';
+
+    if(!state.template){
+      statusEl.className='status-msg error'; statusEl.textContent='Pilih template dulu ya.'; return;
+    }
+
+    const fotoFile = document.getElementById('inputFoto').files[0];
+    const musikFile = document.getElementById('inputMusikFile').files[0];
+    const newId = generateUUID();
+
+    const payload = {
+      id: newId,
+      template_id: state.template,
+      nama_penerima: document.getElementById('inputNama').value,
+      dari: document.getElementById('inputDari').value,
+      tanggal_spesial: document.getElementById('inputTanggal').value || null,
+      pesan_tambahan: document.getElementById('inputPesan').value,
+      gaya_kata: state.style,
+      warna_pilihan: state.warna,
+      musik_pilihan: document.getElementById('inputMusik').value,
+      payment_status: 'pending'
+    };
+
+    try{
+      if(fotoFile){
+        statusEl.className='status-msg';
+        statusEl.textContent='Mengunggah foto...';
+        payload.foto_url = await uploadFile(fotoFile, 'foto');
+      }
+      if(musikFile){
+        statusEl.className='status-msg';
+        statusEl.textContent='Mengunggah musik...';
+        payload.musik_url = await uploadFile(musikFile, 'musik');
+      }
+      statusEl.textContent='Menyimpan pesanan...';
+
+      const res = await fetch(TARGET, {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Prefer':'return=minimal'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if(!res.ok){
+        const bodyText = await res.text();
+        statusEl.className='status-msg error';
+        statusEl.textContent = 'GAGAL — status: ' + res.status + ' | url respons: ' + res.url + ' | isi respons: ' + bodyText.slice(0,300);
+        return;
+      }
+
+      const playLink = location.origin + '/play.html?id=' + newId;
+      statusEl.className='status-msg success';
+      statusEl.innerHTML = 'BERHASIL! Pesanan tersimpan.<br><br>Link kado untuk dikirim ke penerima:<br>' +
+        '<a href="' + playLink + '" target="_blank" style="word-break:break-all;color:#1f6b34;">' + playLink + '</a>' +
+        '<br><br><button type="button" onclick="navigator.clipboard.writeText(\'' + playLink + '\');this.textContent=\'Tersalin!\'" style="margin-top:8px;padding:8px 14px;border-radius:8px;border:1px solid #1f6b34;background:#fff;color:#1f6b34;font-weight:600;">Salin Link</button>' +
+        '<br><br><button type="button" id="btnBayar" style="padding:10px 18px;border-radius:8px;border:none;background:#1B1035;color:#fff;font-weight:700;">Bayar Sekarang</button>' +
+        '<span id="bayarStatus" style="display:block;margin-top:6px;font-size:13px;"></span>';
+
+      document.getElementById('btnBayar').addEventListener('click', async ()=>{
+        const bayarStatusEl = document.getElementById('bayarStatus');
+        bayarStatusEl.textContent = 'Menyiapkan pembayaran...';
+        try{
+          const txRes = await fetch('/api/create-transaction', {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body: JSON.stringify({ order_id: newId })
+          });
+          const txData = await txRes.json();
+          if(txData.redirect_url){
+            location.href = txData.redirect_url;
+          } else {
+            bayarStatusEl.textContent = 'Gagal membuat pembayaran: ' + JSON.stringify(txData.error);
+          }
+        }catch(err){
+          bayarStatusEl.textContent = 'Error: ' + err.message;
+        }
+      });
+
+    }catch(err){
+      statusEl.className='status-msg error';
+      statusEl.textContent = 'ERROR JARINGAN: ' + err.message;
+    }
+  });
+</script>
+
+</body>
+</html>
