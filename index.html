@@ -3,334 +3,307 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kado Digital — Builder (Tahap 2 Debug)</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Kado Digital — Kado interaktif, bukan cuma ucapan biasa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --plum:#3A2145; --peach:#F2A65A; --cream:#FBF6EF; --line: rgba(58,33,69,0.12);
+    --paper:#FBF6EF;
+    --ink:#241933;
+    --plum:#1B1035;
+    --plum-soft:#2B1E4A;
+    --gold:#E8B94E;
+    --rose:#C97B86;
+    --sage:#7E9B7E;
+    --line: rgba(36,25,51,0.14);
   }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  body{ font-family:'Inter', sans-serif; background: var(--cream); color: var(--plum); min-height:100vh; padding-bottom:60px; }
-  header{ padding:22px 20px 18px; text-align:center; }
-  header .tag{ font-size:12px; color:var(--peach); font-weight:700; letter-spacing:0.06em; text-transform:uppercase; }
-  header h1{ font-family:'Fraunces', serif; font-weight:700; font-size:24px; margin-top:6px; }
-  header p{ font-size:13px; color:rgba(58,33,69,0.6); margin-top:6px; }
-
-  .debug-box{
-    margin:0 18px 22px; padding:14px 16px; border-radius:12px;
-    background:#EAF2FF; border:1px solid #B9D3F5; font-size:11.5px; line-height:1.7;
-    word-break: break-all; font-family: monospace;
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:'Plus Jakarta Sans', sans-serif; line-height:1.55;
   }
-  .debug-box b{ font-family:'Inter', sans-serif; font-size:12px; }
+  h1,h2,h3{ font-family:'Fraunces', serif; margin:0; color:var(--plum); font-weight:600; }
+  p{ margin:0; }
+  a{ color:inherit; text-decoration:none; }
+  .wrap{ max-width:480px; margin:0 auto; padding:0 22px; }
 
-  .section{ padding:0 18px; margin-top:22px; }
-  .section-title{ font-size:13px; font-weight:700; margin-bottom:12px; }
-
-  .template-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .tpl-card{
-    border:2px solid transparent; border-radius:16px; padding:16px 14px; cursor:pointer;
-    text-align:left; background:#fff; box-shadow: 0 1px 3px rgba(58,33,69,0.08);
-  }
-  .tpl-card.selected{ border-color:var(--peach); }
-  .tpl-swatch{ width:100%; height:44px; border-radius:10px; margin-bottom:10px; }
-  .tpl-name{ font-family:'Fraunces', serif; font-weight:600; font-size:15px; }
-  .tpl-desc{ font-size:11.5px; color:rgba(58,33,69,0.55); margin-top:3px; }
-
-  .editor{ display:none; }
-  .editor.active{ display:block; }
-
-  .field{ margin-bottom:16px; }
-  .field label{ display:block; font-size:12.5px; font-weight:600; margin-bottom:7px; }
-  .field input[type=text], .field input[type=date], .field textarea, .field select{
-    width:100%; border:1.5px solid var(--line); border-radius:12px; padding:12px 14px;
-    font-family:'Inter',sans-serif; font-size:14px; background:#fff; color:var(--plum);
-  }
-  .field textarea{ min-height:70px; resize:vertical; }
-  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-
-  .swatch-row{ display:flex; gap:10px; flex-wrap:wrap; }
-  .swatch{ width:38px; height:38px; border-radius:50%; cursor:pointer; border:3px solid transparent; }
-  .swatch.selected{ border-color:var(--plum); }
-
-  .style-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .style-btn{
-    padding:12px; border-radius:12px; border:1.5px solid var(--line); background:#fff;
-    font-size:13px; font-weight:600; cursor:pointer; text-align:center;
-  }
-  .style-btn.selected{ border-color:var(--peach); background:#FFF3E4; }
-
-  .btn-save{
-    display:block; width:calc(100% - 36px); margin:24px 18px 0;
-    background:var(--plum); color:#fff; border:none; border-radius:100px;
-    padding:16px; font-weight:700; font-size:14.5px; font-family:'Inter',sans-serif; cursor:pointer;
+  /* Header */
+  header{ padding:18px 0; }
+  .header-row{ display:flex; align-items:center; justify-content:space-between; }
+  .logo{ font-family:'Fraunces', serif; font-weight:600; font-size:20px; color:var(--plum); }
+  .logo span{ color:var(--rose); }
+  .nav-cta{
+    background:var(--plum); color:var(--paper); padding:9px 16px; border-radius:999px;
+    font-size:13.5px; font-weight:600;
   }
 
-  .status-msg{
-    margin:14px 18px 0; padding:14px 16px; border-radius:12px; font-size:12.5px; line-height:1.7; display:none;
-    font-family: monospace; word-break: break-all;
+  /* Hero */
+  .hero{ padding:26px 0 10px; position:relative; overflow:hidden; }
+  .hero h1{ font-size:34px; line-height:1.18; letter-spacing:-0.01em; }
+  .hero .underline-word{ position:relative; display:inline-block; }
+  .hero .underline-word svg{
+    position:absolute; left:-2%; bottom:-6px; width:104%; height:14px;
+    stroke:var(--gold); stroke-width:5; fill:none; stroke-linecap:round;
+    stroke-dasharray:220; stroke-dashoffset:220;
+    animation:draw 900ms ease-out 500ms forwards;
   }
-  .status-msg.success{ background:#e5f5e8; color:#1f6b34; display:block; }
-  .status-msg.error{ background:#fbe6e6; color:#9c2b2b; display:block; }
+  @keyframes draw{ to{ stroke-dashoffset:0; } }
+  .hero p.sub{ margin-top:16px; font-size:16px; color:var(--ink); opacity:0.85; max-width:38ch; }
+
+  .cta-btn{
+    display:inline-flex; align-items:center; gap:8px; margin-top:22px;
+    background:var(--gold); color:var(--plum); font-weight:700; font-size:16px;
+    padding:15px 26px; border-radius:999px; border:none; cursor:pointer;
+  }
+  .cta-btn svg{ width:18px; height:18px; }
+  .trust-line{ margin-top:12px; font-size:12.5px; opacity:0.65; }
+
+  /* Hero visual: stylized gift card mockup */
+  .hero-visual{ margin:30px 0 6px; display:flex; justify-content:center; }
+  .mock-card{
+    width:230px; background:var(--plum); border-radius:20px; padding:22px 18px;
+    color:var(--paper); text-align:center; position:relative;
+    box-shadow:0 18px 40px -18px rgba(27,16,53,0.55);
+  }
+  .mock-dots{ display:flex; gap:5px; justify-content:center; margin-bottom:14px; }
+  .mock-dots span{ width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.25); }
+  .mock-dots span:nth-child(1){ background:var(--gold); }
+  .mock-card .mock-title{ font-family:'Fraunces',serif; font-size:16px; margin-bottom:6px; }
+  .mock-card .mock-body{ font-size:12.5px; opacity:0.75; line-height:1.5; }
+  .sparkle{ position:absolute; font-size:14px; opacity:0.8; }
+  .sparkle.s1{ top:-10px; right:20px; }
+  .sparkle.s2{ bottom:-8px; left:10px; }
+
+  /* Sections */
+  section{ padding:38px 0; }
+  .section-title{ font-size:24px; margin-bottom:22px; }
+
+  /* How it works */
+  .steps{ position:relative; padding-left:26px; }
+  .steps::before{
+    content:''; position:absolute; left:9px; top:6px; bottom:6px; width:2px;
+    background-image:linear-gradient(var(--ink) 40%, rgba(0,0,0,0) 0%);
+    background-position:left; background-size:2px 10px; background-repeat:repeat-y; opacity:0.2;
+  }
+  .step{ position:relative; padding-bottom:26px; }
+  .step:last-child{ padding-bottom:0; }
+  .step-num{
+    position:absolute; left:-26px; top:0; width:20px; height:20px; border-radius:50%;
+    background:var(--gold); color:var(--plum); font-size:11px; font-weight:800;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .step h3{ font-size:16.5px; margin-bottom:4px; }
+  .step p{ font-size:14px; opacity:0.75; }
+
+  /* Features */
+  .feature{ display:flex; gap:14px; padding:16px 0; border-top:1px solid var(--line); }
+  .feature:first-child{ border-top:none; }
+  .feature-icon{
+    flex:none; width:38px; height:38px; border-radius:11px; background:var(--plum);
+    display:flex; align-items:center; justify-content:center; font-size:17px;
+  }
+  .feature h3{ font-size:15.5px; margin-bottom:3px; }
+  .feature p{ font-size:13.5px; opacity:0.75; }
+
+  /* Template gift tags */
+  .tag-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .tag-card{
+    position:relative; padding:20px 14px 16px; color:#fff; text-align:left;
+    clip-path: polygon(10% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 14%);
+  }
+  .tag-card::before{
+    content:''; position:absolute; top:10px; left:10px; width:9px; height:9px;
+    border-radius:50%; background:rgba(255,255,255,0.35); border:1.5px solid rgba(255,255,255,0.6);
+  }
+  .tag-card.ultah{ background:linear-gradient(135deg,#1B1035,#E8B94E); }
+  .tag-card.anniversary{ background:linear-gradient(135deg,#2B0F14,#D98A94); }
+  .tag-card.wisuda{ background:linear-gradient(135deg,#0E1A32,#E3B23C); }
+  .tag-card.maaf{ background:linear-gradient(135deg,#2E3440,#A3B9A3); }
+  .tag-card .tag-name{ font-family:'Fraunces',serif; font-size:17px; margin-top:10px; }
+  .tag-card .tag-desc{ font-size:12px; opacity:0.85; margin-top:4px; }
+  .tag-card .tag-go{ font-size:12.5px; font-weight:700; margin-top:14px; display:inline-block; }
+
+  /* FAQ */
+  details{ border-top:1px solid var(--line); padding:15px 0; }
+  details:last-child{ border-bottom:1px solid var(--line); }
+  summary{
+    font-weight:600; font-size:15px; cursor:pointer; list-style:none;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  summary::-webkit-details-marker{ display:none; }
+  summary::after{ content:'+'; font-size:20px; color:var(--rose); font-weight:400; }
+  details[open] summary::after{ content:'–'; }
+  details p{ margin-top:10px; font-size:14px; opacity:0.8; }
+
+  /* Final CTA */
+  .final-cta{ background:var(--plum); color:var(--paper); text-align:left; border-radius:26px; padding:32px 24px; margin:6px 0 0; }
+  .final-cta h2{ color:var(--paper); font-size:24px; }
+  .final-cta p{ opacity:0.75; margin-top:8px; font-size:14.5px; }
+  .final-cta .cta-btn{ margin-top:18px; }
+  .price-tag{ font-size:13px; opacity:0.7; margin-top:10px; }
+
+  footer{ padding:26px 0 40px; text-align:left; }
+  footer .foot-logo{ font-family:'Fraunces',serif; font-size:16px; color:var(--plum); }
+  footer p{ font-size:12.5px; opacity:0.55; margin-top:8px; }
+  footer .foot-links{ margin-top:14px; display:flex; gap:16px; font-size:13px; opacity:0.7; }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="tag">Tahap 2 · Mode Debug</div>
-  <h1>Bikin Kado Digitalmu</h1>
-  <p>Versi ini nampilin info teknis buat cari tahu penyebab error.</p>
+  <div class="wrap header-row">
+    <div class="logo">Kado<span>.</span>Digital</div>
+    <a class="nav-cta" href="builder.html">Buat Sekarang</a>
+  </div>
 </header>
 
-<div class="debug-box" id="debugBox">
-  <b>Info konfigurasi saat ini:</b><br>
-  Memuat...
-</div>
+<div class="wrap">
 
-<div class="section">
-  <div class="section-title">1. Pilih Template</div>
-  <div class="template-grid" id="templateGrid"></div>
-</div>
+  <section class="hero">
+    <h1>Kado yang bikin mereka <span class="underline-word">main dulu<svg viewBox="0 0 200 14" preserveAspectRatio="none"><path d="M2,10 Q100,2 198,9"/></svg></span>, baru terharu.</h1>
+    <p class="sub">Bukan sekadar ucapan yang tinggal dibaca. Ada mini-game ringan yang harus mereka selesaikan dulu, sebelum pesan personal dari kamu terbuka — lengkap dengan foto dan musik favorit mereka.</p>
 
-<div class="section editor" id="editorSection">
-  <div class="section-title">2. Detail Momen</div>
+    <a href="builder.html" class="cta-btn">
+      Buat Kejutan — mulai Rp8.900
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </a>
+    <div class="trust-line">Link aktif langsung setelah bayar · QRIS, e-wallet, transfer bank</div>
 
-  <div class="field">
-    <label>Nama Penerima</label>
-    <input type="text" id="inputNama" placeholder="misal: Aisyah">
-  </div>
-
-  <div class="row2">
-    <div class="field">
-      <label>Dari Siapa</label>
-      <input type="text" id="inputDari" placeholder="misal: Raka">
+    <div class="hero-visual">
+      <div class="mock-card">
+        <span class="sparkle s1">✨</span>
+        <div class="mock-dots"><span></span><span></span><span></span></div>
+        <div class="mock-title">💌 Untuk Ica</div>
+        <div class="mock-body">"Peluk jarak jauh dari Dut..."</div>
+        <span class="sparkle s2">🎉</span>
+      </div>
     </div>
-    <div class="field">
-      <label>Tanggal Spesial</label>
-      <input type="date" id="inputTanggal">
+  </section>
+
+  <section>
+    <h2 class="section-title">Cara kerjanya</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Pilih tema</h3>
+        <p>Ulang tahun, anniversary, wisuda, atau permintaan maaf.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Ceritain & upload</h3>
+        <p>Tulis pesan, tambahin foto kenangan, pilih musik favoritnya.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Bayar Rp8.900</h3>
+        <p>Lewat QRIS, e-wallet, atau transfer bank — instan.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h3>Kirim link-nya</h3>
+        <p>Mereka mainin game dulu, baru pesan kamu terbuka.</p>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div class="field">
-    <label>Kata-kata Tambahan (opsional)</label>
-    <textarea id="inputPesan" placeholder="Kenangan, candaan, atau hal spesifik..."></textarea>
-  </div>
-
-  <div class="field">
-    <label>Gaya Kata-kata</label>
-    <div class="style-grid" id="styleGrid">
-      <div class="style-btn" data-style="Romantis">💗 Romantis</div>
-      <div class="style-btn" data-style="Lucu">😄 Lucu</div>
-      <div class="style-btn" data-style="Cool">😎 Cool & Santai</div>
-      <div class="style-btn" data-style="Formal">🎓 Formal</div>
+  <section>
+    <h2 class="section-title">Kenapa beda</h2>
+    <div class="feature">
+      <div class="feature-icon">🎮</div>
+      <div>
+        <h3>Mini-game interaktif</h3>
+        <p>Bukan cuma dibaca — ada kuis, susun kata, dan tantangan kecil sebelum pesannya kebuka.</p>
+      </div>
     </div>
-  </div>
+    <div class="feature">
+      <div class="feature-icon">🎨</div>
+      <div>
+        <h3>Gaya bahasa sesuai kamu</h3>
+        <p>Romantis, lucu, cool & santai, atau formal — tinggal pilih.</p>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">📷</div>
+      <div>
+        <h3>Foto & musik asli</h3>
+        <p>Upload kenangan kalian sendiri, bukan template generik.</p>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🔗</div>
+      <div>
+        <h3>Sekali bikin, tinggal kirim</h3>
+        <p>Satu link, bisa dibuka kapan aja setelah dibayar.</p>
+      </div>
+    </div>
+  </section>
 
-  <div class="field">
-    <label>Warna Tema</label>
-    <div class="swatch-row" id="swatchRow"></div>
-  </div>
+  <section>
+    <h2 class="section-title">Pilih tema</h2>
+    <div class="tag-grid">
+      <a class="tag-card ultah" href="builder.html?template=ultah">
+        <div class="tag-name">Ulang Tahun</div>
+        <div class="tag-desc">Ceria & playful</div>
+        <span class="tag-go">Pilih →</span>
+      </a>
+      <a class="tag-card anniversary" href="builder.html?template=anniversary">
+        <div class="tag-name">Anniversary</div>
+        <div class="tag-desc">Romantis & hangat</div>
+        <span class="tag-go">Pilih →</span>
+      </a>
+      <a class="tag-card wisuda" href="builder.html?template=wisuda">
+        <div class="tag-name">Wisuda</div>
+        <div class="tag-desc">Formal & membanggakan</div>
+        <span class="tag-go">Pilih →</span>
+      </a>
+      <a class="tag-card maaf" href="builder.html?template=maaf">
+        <div class="tag-name">Permintaan Maaf</div>
+        <div class="tag-desc">Lembut & tulus</div>
+        <span class="tag-go">Pilih →</span>
+      </a>
+    </div>
+  </section>
 
-  <div class="field">
-    <label>Musik Latar (opsional)</label>
-    <select id="inputMusik">
-      <option value="">Tanpa musik</option>
-      <option value="Perfect - Ed Sheeran">Perfect — Ed Sheeran</option>
-      <option value="Sempurna - Andra & The Backbone">Sempurna — Andra & The Backbone</option>
-    </select>
-  </div>
+  <section>
+    <h2 class="section-title">Pertanyaan yang sering ditanya</h2>
+    <details open>
+      <summary>Berapa lama sampai link-nya jadi?</summary>
+      <p>Cuma butuh beberapa menit — isi tema dan pesan, bayar, link langsung aktif.</p>
+    </details>
+    <details>
+      <summary>Isi kadonya apa aja?</summary>
+      <p>Rangkaian mini-game ringan (kuis, susun kata, tebak emoji, dll), diakhiri pesan personal dari kamu — lengkap dengan foto dan musik kalau kamu tambahkan.</p>
+    </details>
+    <details>
+      <summary>Pembayarannya aman?</summary>
+      <p>Diproses lewat Midtrans, mendukung QRIS, e-wallet, dan transfer bank.</p>
+    </details>
+    <details>
+      <summary>Link-nya berlaku berapa lama?</summary>
+      <p>Selama halamannya masih aktif, link kamu tetap bisa dibuka kapan saja.</p>
+    </details>
+  </section>
 
-  <div class="field">
-    <label>Upload Foto (opsional)</label>
-    <input type="file" id="inputFoto" accept="image/*">
-  </div>
+  <section>
+    <div class="final-cta">
+      <h2>Siap bikin mereka penasaran?</h2>
+      <p>Nggak perlu mahal untuk kasih sesuatu yang mereka inget.</p>
+      <a href="builder.html" class="cta-btn">Buat Kejutan Sekarang</a>
+      <div class="price-tag">Mulai Rp8.900 · proses instan</div>
+    </div>
+  </section>
 
-  <div class="field">
-    <label>Upload File Musik (opsional, menggantikan pilihan di atas)</label>
-    <input type="file" id="inputMusikFile" accept="audio/*">
-  </div>
+  <footer>
+    <div class="foot-logo">Kado.Digital</div>
+    <div class="foot-links">
+      <span>Instagram</span>
+      <span>TikTok</span>
+    </div>
+    <p>© 2026 Kado Digital — dibuat dengan cerita, bukan template.</p>
+  </footer>
 
-  <button class="btn-save" id="btnSave">Simpan Pesanan (Debug)</button>
-  <div class="status-msg" id="statusMsg"></div>
 </div>
-
-<script>
-  const templates = [
-    { id:'ultah', name:'Ulang Tahun', desc:'Ceria & playful', bg:'linear-gradient(135deg,#1B1035,#E8B94E)' },
-    { id:'anniversary', name:'Anniversary', desc:'Romantis & hangat', bg:'linear-gradient(135deg,#2B0F14,#D98A94)' },
-    { id:'wisuda', name:'Wisuda', desc:'Formal & membanggakan', bg:'linear-gradient(135deg,#0E1A32,#E3B23C)' },
-    { id:'maaf', name:'Permintaan Maaf', desc:'Lembut & tulus', bg:'linear-gradient(135deg,#2E3440,#A3B9A3)' },
-  ];
-  const colors = ['#E8B94E','#D98A94','#7FA8D9','#A3B9A3','#C9B6E4','#F2A65A'];
-  let state = { template:null, style:null, warna:null };
-
-  const grid = document.getElementById('templateGrid');
-  templates.forEach(t=>{
-    const card = document.createElement('div');
-    card.className='tpl-card';
-    card.innerHTML = `<div class="tpl-swatch" style="background:${t.bg}"></div>
-      <div class="tpl-name">${t.name}</div><div class="tpl-desc">${t.desc}</div>`;
-    card.onclick = ()=>{
-      state.template = t.id;
-      document.querySelectorAll('.tpl-card').forEach(c=>c.classList.remove('selected'));
-      card.classList.add('selected');
-      document.getElementById('editorSection').classList.add('active');
-    };
-    grid.appendChild(card);
-  });
-
-  document.querySelectorAll('.style-btn').forEach(btn=>{
-    btn.onclick = ()=>{
-      state.style = btn.dataset.style;
-      document.querySelectorAll('.style-btn').forEach(b=>b.classList.remove('selected'));
-      btn.classList.add('selected');
-    };
-  });
-
-  const swatchRow = document.getElementById('swatchRow');
-  colors.forEach(c=>{
-    const s = document.createElement('div');
-    s.className='swatch'; s.style.background = c;
-    s.onclick = ()=>{
-      state.warna = c;
-      document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('selected'));
-      s.classList.add('selected');
-    };
-    swatchRow.appendChild(s);
-  });
-
-  // ⚙️ GANTI DUA NILAI INI DENGAN MILIK KAMU DARI SUPABASE (Settings → API)
-  const SUPABASE_URL = "https://aocgocdsufkfdemujisy.supabase.co".trim().replace(/[^\x00-\x7F]/g, '');
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvY2dvY2RzdWZrZmRlbXVqaXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MTQ1ODgsImV4cCI6MjEwNTA5MDU4OH0.3qT4WwMnpV-Q3zKjipFYaW-rdyEraaQXCc6z7mSiG_4".trim().replace(/[^\x00-\x7F]/g, '');
-
-  const TARGET = SUPABASE_URL + "/rest/v1/orders";
-
-  // Tampilkan info konfigurasi langsung di layar (buat debugging)
-  document.getElementById('debugBox').innerHTML =
-    '<b>Info konfigurasi saat ini:</b><br>' +
-    'SUPABASE_URL panjang: ' + SUPABASE_URL.length + ' karakter<br>' +
-    'SUPABASE_URL: ' + SUPABASE_URL + '<br>' +
-    'ANON_KEY panjang: ' + SUPABASE_ANON_KEY.length + ' karakter<br>' +
-    'Target fetch: ' + TARGET;
-
-  const STORAGE_BUCKET = 'kado-uploads';
-
-  function generateUUID(){
-    if(crypto.randomUUID) return crypto.randomUUID();
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c=>{
-      const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8);
-      return v.toString(16);
-    });
-  }
-
-  async function uploadFile(file, folder){
-    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-    const path = folder + '/' + Date.now() + '_' + safeName;
-    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${path}`, {
-      method:'POST',
-      headers:{
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': file.type
-      },
-      body: file
-    });
-    if(!res.ok){
-      const errText = await res.text();
-      throw new Error('Upload ' + folder + ' gagal: ' + errText.slice(0,200));
-    }
-    return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
-  }
-
-  document.getElementById('btnSave').addEventListener('click', async ()=>{
-    const statusEl = document.getElementById('statusMsg');
-    statusEl.className = 'status-msg';
-
-    if(!state.template){
-      statusEl.className='status-msg error'; statusEl.textContent='Pilih template dulu ya.'; return;
-    }
-
-    const fotoFile = document.getElementById('inputFoto').files[0];
-    const musikFile = document.getElementById('inputMusikFile').files[0];
-    const newId = generateUUID();
-
-    const payload = {
-      id: newId,
-      template_id: state.template,
-      nama_penerima: document.getElementById('inputNama').value,
-      dari: document.getElementById('inputDari').value,
-      tanggal_spesial: document.getElementById('inputTanggal').value || null,
-      pesan_tambahan: document.getElementById('inputPesan').value,
-      gaya_kata: state.style,
-      warna_pilihan: state.warna,
-      musik_pilihan: document.getElementById('inputMusik').value,
-      payment_status: 'pending'
-    };
-
-    try{
-      if(fotoFile){
-        statusEl.className='status-msg';
-        statusEl.textContent='Mengunggah foto...';
-        payload.foto_url = await uploadFile(fotoFile, 'foto');
-      }
-      if(musikFile){
-        statusEl.className='status-msg';
-        statusEl.textContent='Mengunggah musik...';
-        payload.musik_url = await uploadFile(musikFile, 'musik');
-      }
-      statusEl.textContent='Menyimpan pesanan...';
-
-      const res = await fetch(TARGET, {
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Prefer':'return=minimal'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if(!res.ok){
-        const bodyText = await res.text();
-        statusEl.className='status-msg error';
-        statusEl.textContent = 'GAGAL — status: ' + res.status + ' | url respons: ' + res.url + ' | isi respons: ' + bodyText.slice(0,300);
-        return;
-      }
-
-      const playLink = location.origin + '/play.html?id=' + newId;
-      statusEl.className='status-msg success';
-      statusEl.innerHTML = 'BERHASIL! Pesanan tersimpan.<br><br>Link kado untuk dikirim ke penerima:<br>' +
-        '<a href="' + playLink + '" target="_blank" style="word-break:break-all;color:#1f6b34;">' + playLink + '</a>' +
-        '<br><br><button type="button" onclick="navigator.clipboard.writeText(\'' + playLink + '\');this.textContent=\'Tersalin!\'" style="margin-top:8px;padding:8px 14px;border-radius:8px;border:1px solid #1f6b34;background:#fff;color:#1f6b34;font-weight:600;">Salin Link</button>' +
-        '<br><br><button type="button" id="btnBayar" style="padding:10px 18px;border-radius:8px;border:none;background:#1B1035;color:#fff;font-weight:700;">Bayar Sekarang</button>' +
-        '<span id="bayarStatus" style="display:block;margin-top:6px;font-size:13px;"></span>';
-
-      document.getElementById('btnBayar').addEventListener('click', async ()=>{
-        const bayarStatusEl = document.getElementById('bayarStatus');
-        bayarStatusEl.textContent = 'Menyiapkan pembayaran...';
-        try{
-          const txRes = await fetch('/api/create-transaction', {
-            method:'POST',
-            headers:{ 'Content-Type':'application/json' },
-            body: JSON.stringify({ order_id: newId })
-          });
-          const txData = await txRes.json();
-          if(txData.redirect_url){
-            location.href = txData.redirect_url;
-          } else {
-            bayarStatusEl.textContent = 'Gagal membuat pembayaran: ' + JSON.stringify(txData.error);
-          }
-        }catch(err){
-          bayarStatusEl.textContent = 'Error: ' + err.message;
-        }
-      });
-
-    }catch(err){
-      statusEl.className='status-msg error';
-      statusEl.textContent = 'ERROR JARINGAN: ' + err.message;
-    }
-  });
-</script>
-
 </body>
 </html>
