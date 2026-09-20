@@ -71,6 +71,34 @@
   }
   .status-msg.success{ background:#e5f5e8; color:#1f6b34; display:block; }
   .status-msg.error{ background:#fbe6e6; color:#9c2b2b; display:block; }
+
+  .field-hint{ font-size:12.5px; color:#8a7fa0; margin-top:6px; line-height:1.4; }
+
+  .btn-preview-audio{
+    margin-top:8px; padding:8px 14px; border-radius:8px; border:1px solid #1B1035;
+    background:#fff; color:#1B1035; font-weight:600; font-size:13px; cursor:pointer;
+  }
+  .btn-simulasi{
+    width:100%; padding:14px; border-radius:12px; border:2px solid #1B1035;
+    background:#fff; color:#1B1035; font-weight:700; font-size:15px; margin-top:10px; cursor:pointer;
+  }
+  .preview-overlay{
+    display:none; position:fixed; inset:0; background:rgba(27,16,53,0.7);
+    z-index:999; align-items:center; justify-content:center; padding:16px;
+  }
+  .preview-overlay.active{ display:flex; }
+  .preview-modal{
+    background:#1B1035; border-radius:18px; width:100%; max-width:420px; height:88vh;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .preview-header{
+    display:flex; justify-content:space-between; align-items:center; padding:12px 16px;
+    color:#FBF6EF; font-size:13px; border-bottom:1px solid rgba(255,255,255,0.1);
+  }
+  .preview-header button{
+    background:none; border:none; color:#FBF6EF; font-size:18px; cursor:pointer;
+  }
+  .preview-modal iframe{ flex:1; border:none; width:100%; }
 </style>
 </head>
 <body>
@@ -128,9 +156,12 @@
     <label>Musik Latar (opsional)</label>
     <select id="inputMusik">
       <option value="">Tanpa musik</option>
-      <option value="Perfect - Ed Sheeran">Perfect — Ed Sheeran</option>
-      <option value="Sempurna - Andra & The Backbone">Sempurna — Andra & The Backbone</option>
+      <option value="Ceria & Upbeat">Ceria & Upbeat</option>
+      <option value="Romantis & Lembut">Romantis & Lembut</option>
+      <option value="Syahdu & Megah">Syahdu & Megah</option>
+      <option value="Santai & Chill">Santai & Chill</option>
     </select>
+    <div class="field-hint">Ini cuma jadi label suasana — supaya lagunya beneran bisa didengar penerima, upload file musik sendiri di bawah ya (hindari pakai lagu berlisensi tanpa izin).</div>
   </div>
 
   <div class="field">
@@ -139,12 +170,25 @@
   </div>
 
   <div class="field">
-    <label>Upload File Musik (opsional, menggantikan pilihan di atas)</label>
+    <label>Upload File Musik (opsional)</label>
     <input type="file" id="inputMusikFile" accept="audio/*">
+    <button type="button" class="btn-preview-audio" id="btnPreviewAudio" style="display:none;">▶ Dengar dulu</button>
+    <audio id="localAudioPreview" style="display:none;width:100%;margin-top:8px;" controls></audio>
   </div>
 
+  <button type="button" class="btn-simulasi" id="btnSimulasi">🔍 Lihat Simulasi Kado</button>
   <button class="btn-save" id="btnSave">Simpan & Lanjut Bayar</button>
   <div class="status-msg" id="statusMsg"></div>
+</div>
+
+<div class="preview-overlay" id="previewOverlay">
+  <div class="preview-modal">
+    <div class="preview-header">
+      <span>Simulasi Kado — begini kira-kira yang dilihat penerima</span>
+      <button type="button" id="btnClosePreview">✕</button>
+    </div>
+    <iframe id="previewFrame" src="about:blank"></iframe>
+  </div>
 </div>
 
 <script>
@@ -182,6 +226,65 @@
     };
   });
 
+  // Preview lokal file musik (langsung di form, tanpa upload)
+  const inputMusikFile = document.getElementById('inputMusikFile');
+  const btnPreviewAudio = document.getElementById('btnPreviewAudio');
+  const localAudioPreview = document.getElementById('localAudioPreview');
+  inputMusikFile.addEventListener('change', ()=>{
+    const f = inputMusikFile.files[0];
+    if(f){
+      localAudioPreview.src = URL.createObjectURL(f);
+      btnPreviewAudio.style.display = 'inline-block';
+    } else {
+      btnPreviewAudio.style.display = 'none';
+      localAudioPreview.style.display = 'none';
+    }
+  });
+  btnPreviewAudio.onclick = ()=>{
+    localAudioPreview.style.display = 'block';
+    localAudioPreview.play();
+  };
+
+  // Simulasi kado — buka play.html di dalam iframe dengan data form saat ini (belum disimpan ke database)
+  const previewOverlay = document.getElementById('previewOverlay');
+  const previewFrame = document.getElementById('previewFrame');
+  document.getElementById('btnSimulasi').onclick = ()=>{
+    if(!state.template){
+      alert('Pilih template dulu ya, biar simulasinya sesuai.');
+      return;
+    }
+    previewOverlay.classList.add('active');
+    previewFrame.src = 'play.html?preview=1';
+
+    const onReady = (e)=>{
+      if(!e.data || e.data.type !== 'kado-preview-ready') return;
+      window.removeEventListener('message', onReady);
+
+      const fotoFile = document.getElementById('inputFoto').files[0];
+      const musikFile = document.getElementById('inputMusikFile').files[0];
+
+      const previewOrder = {
+        id: 'preview-' + Date.now(),
+        template_id: state.template,
+        nama_penerima: document.getElementById('inputNama').value || 'Kamu',
+        dari: document.getElementById('inputDari').value || 'Seseorang',
+        tanggal_spesial: document.getElementById('inputTanggal').value || null,
+        pesan_tambahan: document.getElementById('inputPesan').value,
+        gaya_kata: state.style || 'Cool',
+        warna_pilihan: state.warna || '#E8B94E',
+        musik_pilihan: document.getElementById('inputMusik').value,
+        foto_url: fotoFile ? URL.createObjectURL(fotoFile) : null,
+        musik_url: musikFile ? URL.createObjectURL(musikFile) : null
+      };
+      previewFrame.contentWindow.postMessage({ type:'kado-preview-data', order: previewOrder }, location.origin);
+    };
+    window.addEventListener('message', onReady);
+  };
+  document.getElementById('btnClosePreview').onclick = ()=>{
+    previewOverlay.classList.remove('active');
+    previewFrame.src = 'about:blank';
+  };
+
   const swatchRow = document.getElementById('swatchRow');
   colors.forEach(c=>{
     const s = document.createElement('div');
@@ -196,7 +299,7 @@
 
   // ⚙️ GANTI DUA NILAI INI DENGAN MILIK KAMU DARI SUPABASE (Settings → API)
   const SUPABASE_URL = "https://aocgocdsufkfdemujisy.supabase.co".trim().replace(/[^\x00-\x7F]/g, '');
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvY2dvY2RzdWZrZmRlbXVqaXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MTQ1ODgsImV4cCI6MjEwNTA5MDU4OH0.3qT4WwMnpV-Q3zKjipFYaW-rdyEraaQXCc6z7mSiG_4".trim().replace(/[^\x00-\x7F]/g, '');
+  const SUPABASE_ANON_KEY = "PASTE_ANON_KEY_LENGKAP_DI_SINI".trim().replace(/[^\x00-\x7F]/g, '');
 
   const TARGET = SUPABASE_URL + "/rest/v1/orders";
 
