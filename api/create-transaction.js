@@ -17,10 +17,10 @@ export default async function handler(req, res) {
 
   // 💰 Harga per template — GANTI ANGKA INI SESUAI HARGA JUAL KAMU
   const HARGA = {
-    ultah: 25000,
-    anniversary: 25000,
-    wisuda: 25000,
-    maaf: 25000
+    ultah: 5000,
+    anniversary: 5000,
+    wisuda: 5000,
+    maaf: 5000
   };
 
   try {
@@ -85,4 +85,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
-                                              }
+}
