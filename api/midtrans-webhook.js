@@ -1,61 +1,88 @@
-// File ini harus disimpan di GitHub dengan nama path: api/midtrans-webhook.js
-import crypto from 'crypto';
+// File ini harus disimpan di GitHub dengan nama path: api/create-transaction.js
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).end();
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const notification = req.body || {};
-  const {
-    order_id,
-    status_code,
-    gross_amount,
-    signature_key,
-    transaction_status,
-    fraud_status
-  } = notification;
-
-  const MIDTRANS_SERVER_KEY = process.env.MIDTRANS_SERVER_KEY;
-
-  // Verifikasi keaslian notifikasi supaya tidak bisa dipalsukan orang lain
-  const expectedSignature = crypto
-    .createHash('sha512')
-    .update(order_id + status_code + gross_amount + MIDTRANS_SERVER_KEY)
-    .digest('hex');
-
-  if (signature_key !== expectedSignature) {
-    console.log('Signature mismatch. order_id:', order_id, '| expected:', expectedSignature, '| received:', signature_key);
-    return res.status(403).json({ error: 'Signature tidak valid' });
-  }
-
-  let newStatus = 'pending';
-  if (transaction_status === 'capture' || transaction_status === 'settlement') {
-    newStatus = fraud_status === 'challenge' ? 'pending' : 'paid';
-  } else if (['cancel', 'deny', 'expire'].includes(transaction_status)) {
-    newStatus = 'failed';
+  const { order_id } = req.body || {};
+  if (!order_id) {
+    return res.status(400).json({ error: 'order_id wajib diisi' });
   }
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const MIDTRANS_SERVER_KEY = process.env.MIDTRANS_SERVER_KEY;
+  const IS_PRODUCTION = process.env.MIDTRANS_IS_PRODUCTION === 'true';
 
-  const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${order_id}`, {
-    method: 'PATCH',
-    headers: {
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation'
-    },
-    body: JSON.stringify({ payment_status: newStatus })
-  });
+  // 💰 Harga per template — GANTI ANGKA INI SESUAI HARGA JUAL KAMU
+  const HARGA = {
+    ultah: 8900,
+    anniversary: 8900,
+    wisuda: 8900,
+    maaf: 8900
+  };
 
-  const updateBody = await updateRes.text();
-  console.log('Update order_id:', order_id, '| newStatus:', newStatus, '| Supabase response status:', updateRes.status, '| body:', updateBody);
+  try {
+    // Ambil data order dari Supabase (pakai service role, bypass RLS karena ini kode server yang aman)
+    const orderRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/orders?id=eq.${order_id}&select=*`,
+      {
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+        }
+      }
+    );
+    const orders = await orderRes.json();
+    if (!orders || !orders.length) {
+      return res.status(404).json({ error: 'Order tidak ditemukan' });
+    }
+    const order = orders[0];
+    const amount = HARGA[order.template_id] || 25000;
 
-  if (!updateRes.ok) {
-    return res.status(500).json({ error: 'Gagal update Supabase', detail: updateBody });
+    const midtransEndpoint = IS_PRODUCTION
+      ? 'https://app.midtrans.com/snap/v1/transactions'
+      : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
+
+    const authHeader = 'Basic ' + Buffer.from(MIDTRANS_SERVER_KEY + ':').toString('base64');
+
+    const midtransRes = await fetch(midtransEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: authHeader
+      },
+      body: JSON.stringify({
+        transaction_details: {
+          order_id: order.id,
+          gross_amount: amount
+        },
+        item_details: [
+          {
+            id: order.template_id,
+            price: amount,
+            quantity: 1,
+            name: 'Kado Digital - ' + (order.template_id || 'custom')
+          }
+        ],
+        customer_details: {
+          first_name: order.dari || 'Pembeli'
+        }
+      })
+    });
+
+    const midtransData = await midtransRes.json();
+
+    if (!midtransRes.ok) {
+      return res.status(500).json({ error: midtransData });
+    }
+
+    return res.status(200).json({
+      token: midtransData.token,
+      redirect_url: midtransData.redirect_url
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
-
-  return res.status(200).json({ ok: true, updated: updateBody });
 }
