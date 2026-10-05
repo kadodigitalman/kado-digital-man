@@ -55,6 +55,16 @@
   .from-tag{ font-size:14px; opacity:0.8; margin-top:4px; }
   .foto-preview{ width:100%; border-radius:14px; margin:14px 0; max-height:280px; object-fit:cover; }
   audio{ width:100%; margin-top:14px; }
+  .galeri-scroll{
+    display:flex; gap:10px; overflow-x:auto; padding:6px 0 16px; scroll-snap-type:x mandatory;
+  }
+  .galeri-thumb{
+    flex:none; width:140px; height:180px; object-fit:cover; border-radius:14px; scroll-snap-align:start;
+  }
+  .galeri-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:14px 0;
+  }
+  .galeri-grid-item{ width:100%; height:70px; object-fit:cover; border-radius:8px; }
 </style>
 </head>
 <body>
@@ -70,8 +80,10 @@
 const SUPABASE_URL = "https://aocgocdsufkfdemujisy.supabase.co".trim().replace(/[^\x00-\x7F]/g, '');
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvY2dvY2RzdWZrZmRlbXVqaXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MTQ1ODgsImV4cCI6MjEwNTA5MDU4OH0.3qT4WwMnpV-Q3zKjipFYaW-rdyEraaQXCc6z7mSiG_4".trim().replace(/[^\x00-\x7F]/g, '');
 
-// ================== AMBIL ID DARI URL ==================
+// ================== AMBIL ID / SLUG DARI URL ==================
 const params = new URLSearchParams(location.search);
+const slugMatch = location.pathname.match(/^\/k\/([^\/]+)$/);
+const customSlug = slugMatch ? decodeURIComponent(slugMatch[1]) : null;
 const orderId = params.get('id');
 const isPreview = params.get('preview') === '1';
 const cardEl = document.getElementById('card');
@@ -84,15 +96,18 @@ if(isPreview){
   });
   // Kasih tahu parent (builder.html) kalau iframe ini sudah siap terima data
   window.parent.postMessage({ type:'kado-preview-ready' }, '*');
+} else if(customSlug){
+  loadOrder(null, customSlug);
 } else if(!orderId){
   cardEl.innerHTML = '<p class="error">Link tidak lengkap. Pastikan link punya ?id=... di belakangnya.</p>';
 } else {
-  loadOrder(orderId);
+  loadOrder(orderId, null);
 }
 
-async function loadOrder(id){
+async function loadOrder(id, slug){
   try{
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}&select=*`, {
+    const filter = slug ? `custom_slug=eq.${encodeURIComponent(slug)}` : `id=eq.${id}`;
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/orders?${filter}&select=*`, {
       headers:{
         'apikey': SUPABASE_ANON_KEY,
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
@@ -154,6 +169,8 @@ const OCCASION = {
     quizQ:(n)=>`Kalau ${n} boleh minta satu permohonan ulang tahun, kira-kira soal apa ya?`,
     quizOpts:['Kesehatan','Kebahagiaan','Kesuksesan','Rahasia aja 😄'],
     sliderLabel:(n)=>`Geser untuk kirim doa ulang tahun ke ${n} →`,
+    orderWords:['SELAMAT','ULANG','TAHUN'],
+    tapLabel:(n)=>`Ketuk sebanyak-banyaknya sebagai simbol semangat baru buat ${n}!`,
     body:[
       "Di hari spesial ini, {nama} pantas dapat semua hal baik yang selama ini {nama} usahakan sendiri.",
       "Semoga tahun baru dalam hidup {nama} dipenuhi hal-hal yang bikin senyum makin lebar.",
@@ -166,6 +183,8 @@ const OCCASION = {
     quizQ:(n)=>`Momen mana yang paling {dari} inget bareng ${n}?`,
     quizOpts:['Pertemuan pertama','Perjalanan bareng','Hal receh sehari-hari','Semuanya berkesan'],
     sliderLabel:(n)=>`Geser untuk kirim rasa sayang ke ${n} →`,
+    orderWords:['SELALU','BERSAMA','KAMU'],
+    tapLabel:(n)=>`Ketuk hati ini sebanyak rasa sayang {dari} ke ${n}!`,
     body:[
       "Melewati hari demi hari bareng {nama} adalah hal yang {dari} syukuri diam-diam.",
       "Nggak perlu momen besar, karena hal kecil bareng {nama} udah cukup bikin hari terasa lebih baik.",
@@ -178,6 +197,8 @@ const OCCASION = {
     quizQ:(n)=>`Kira-kira apa yang paling {dari} banggain dari perjuangan ${n} sampai sejauh ini?`,
     quizOpts:['Kerja kerasnya','Nggak gampang nyerah','Tetap rendah hati','Semuanya!'],
     sliderLabel:(n)=>`Geser untuk kirim tepuk tangan ke ${n} →`,
+    orderWords:['SELAMAT','ATAS','KELULUSANMU'],
+    tapLabel:(n)=>`Ketuk sebagai tepuk tangan meriah buat ${n}!`,
     body:[
       "Semua begadang, revisi, dan usaha {nama} akhirnya terbayar hari ini.",
       "{dari} tahu perjalanan {nama} sampai di titik ini nggak mudah, dan itu yang bikin momen ini terasa pantas dirayakan.",
@@ -190,10 +211,68 @@ const OCCASION = {
     quizQ:(n)=>`Kalau boleh jujur, gimana perasaan {dari} soal apa yang udah terjadi sama ${n}?`,
     quizOpts:['Menyesal','Pengen memperbaiki','Masih peduli','Semuanya benar'],
     sliderLabel:(n)=>`Geser kalau ${n} bersedia baca pesan ini →`,
+    orderWords:['MAAFKAN','AKU','YA'],
+    tapLabel:(n)=>`Ketuk sebagai tanda {dari} sungguh-sungguh minta maaf ke ${n}.`,
     body:[
       "{dari} sadar ada yang perlu diperbaiki, dan permintaan maaf ini datang dari hati, bukan sekadar formalitas.",
       "Kalau ada yang bikin {nama} kecewa, {dari} minta maaf — dan berharap masih ada ruang untuk memperbaiki ini.",
       "Nggak ada niat menyakiti {nama}. {dari} cuma berharap pesan kecil ini bisa jadi awal yang lebih baik."
+    ]
+  },
+  cinta: {
+    label:'Nembak / Cinta', scrambleWord:'CINTA', emojiSet:['💌','😳','✨'], emojiAnswer:'Nembak / Pernyataan Cinta',
+    emojiOptions:['Nembak / Pernyataan Cinta','Ulang Tahun','Permintaan Maaf'],
+    quizQ:(n)=>`Menurut ${n}, kira-kira apa yang bikin {dari} akhirnya berani jujur soal perasaan ini?`,
+    quizOpts:['Nggak mau nyesel','Udah lama dipendam','Momennya pas aja','Semuanya benar'],
+    sliderLabel:(n)=>`Geser kalau ${n} siap dengar isi hati {dari} →`,
+    orderWords:['AKU','SUKA','KAMU'],
+    tapLabel:(n)=>`Ketuk sekencang detak jantung {dari} tiap deket ${n}!`,
+    body:[
+      "{dari} udah mikirin cara ngomong ini berkali-kali, dan akhirnya milih cara ini biar {nama} ngerti seriusnya.",
+      "Bukan basa-basi, {dari} beneran nyaman tiap kali ada {nama} di dekat.",
+      "Nggak tau ini bakal dijawab apa, tapi {dari} cuma pengen {nama} tahu perasaan ini apa adanya."
+    ]
+  },
+  ldr: {
+    label:'LDR', scrambleWord:'RINDU', emojiSet:['✈️','📱','🌙'], emojiAnswer:'Jarak Jauh (LDR)',
+    emojiOptions:['Jarak Jauh (LDR)','Liburan','Wisuda'],
+    quizQ:(n)=>`Hal apa yang paling {dari} kangenin dari ${n} akhir-akhir ini?`,
+    quizOpts:['Suaranya','Ketawa bareng','Hal-hal receh','Semuanya'],
+    sliderLabel:(n)=>`Geser untuk kirim pelukan jarak jauh ke ${n} →`,
+    orderWords:['JAUH','DI MATA','DEKAT DI HATI'],
+    tapLabel:(n)=>`Ketuk sebagai pengganti pelukan buat ${n} hari ini!`,
+    body:[
+      "Jarak ini kadang berat, tapi {dari} percaya semua ini ada ujungnya bareng {nama}.",
+      "Walau nggak bisa ketemu sekarang, {nama} tetap jadi bagian dari hari-hari {dari}.",
+      "Makasih udah tetap bertahan sejauh ini, {nama}. {dari} juga lagi berusaha di sini."
+    ]
+  },
+  selamat: {
+    label:'Ucapan Selamat', scrambleWord:'SUKSES', emojiSet:['🏆','🎊','👏'], emojiAnswer:'Ucapan Selamat',
+    emojiOptions:['Ucapan Selamat','Wisuda','Ulang Tahun'],
+    quizQ:(n)=>`Kira-kira usaha apa dari ${n} yang paling bikin pencapaian ini pantas dirayain?`,
+    quizOpts:['Kerja kerasnya','Konsistensinya','Keberaniannya coba','Semuanya'],
+    sliderLabel:(n)=>`Geser untuk kirim selamat ke ${n} →`,
+    orderWords:['SELAMAT','ATAS','PENCAPAIANMU'],
+    tapLabel:(n)=>`Ketuk sebagai rayuan eh rayaan kecil buat ${n}!`,
+    body:[
+      "Pencapaian ini nggak datang tiba-tiba, {nama} — ini hasil dari usaha yang konsisten.",
+      "{dari} ikut senang lihat {nama} sampai di titik ini, semoga jadi awal dari hal-hal baik lainnya.",
+      "Selamat ya {nama}, kamu pantas dapat ini dan lebih banyak lagi ke depannya."
+    ]
+  },
+  sembuh: {
+    label:'Semoga Cepat Sembuh', scrambleWord:'SEMBUH', emojiSet:['🌿','💊','🤍'], emojiAnswer:'Semoga Cepat Sembuh',
+    emojiOptions:['Semoga Cepat Sembuh','Permintaan Maaf','Ucapan Selamat'],
+    quizQ:(n)=>`Hal kecil apa yang kira-kira bisa bikin ${n} sedikit lebih nyaman hari ini?`,
+    quizOpts:['Istirahat cukup','Ditemani cerita','Makanan favorit','Semuanya boleh'],
+    sliderLabel:(n)=>`Geser untuk kirim semangat sembuh ke ${n} →`,
+    orderWords:['CEPAT','SEMBUH','YA'],
+    tapLabel:(n)=>`Ketuk sebagai kirim energi positif buat ${n}!`,
+    body:[
+      "{dari} tahu lagi nggak enak badan itu berat, tapi {nama} nggak sendirian ngelewatinnya.",
+      "Istirahat yang cukup ya {nama}, nggak perlu buru-buru pulih — pelan-pelan aja.",
+      "{dari} doain {nama} cepat pulih dan bisa balik ceria seperti biasanya."
     ]
   }
 };
@@ -236,8 +315,14 @@ function generateGameContent(order){
   const occ = OCCASION[order.template_id] || OCCASION.ultah;
   const tone = TONE[order.gaya_kata] || TONE.Cool;
 
-  const allGameTypes = ['quiz','scramble','emoji','slider'];
-  const chosenGames = pickN(rng, allGameTypes, 3);
+  const fotoUrls = getFotoUrls(order);
+  const baseGameTypes = ['quiz','scramble','emoji','slider','order','tap'];
+  let chosenGames;
+  if(fotoUrls.length){
+    chosenGames = ['galeri', ...pickN(rng, baseGameTypes, 3)];
+  } else {
+    chosenGames = pickN(rng, baseGameTypes, 4);
+  }
 
   const opener = fillTemplate(pick(rng, tone.opener), order);
   const closer = fillTemplate(pick(rng, tone.closer), order);
@@ -247,7 +332,13 @@ function generateGameContent(order){
   }
   const finalMessage = `${opener}\n\n${body}\n\n${closer}`;
 
-  return { rng, occ, tone, chosenGames, finalMessage };
+  return { rng, occ, tone, chosenGames, finalMessage, fotoUrls };
+}
+
+function getFotoUrls(order){
+  if(Array.isArray(order.foto_urls) && order.foto_urls.length) return order.foto_urls.slice(0,6);
+  if(order.foto_url) return [order.foto_url];
+  return [];
 }
 
 // ================== RENDER ENGINE ==================
@@ -291,6 +382,9 @@ function nextStep(){
   else if(type === 'scramble') renderScramble();
   else if(type === 'emoji') renderEmoji();
   else if(type === 'slider') renderSlider();
+  else if(type === 'order') renderOrderPuzzle();
+  else if(type === 'tap') renderTap();
+  else if(type === 'galeri') renderGaleri();
 }
 
 function renderQuiz(){
@@ -364,9 +458,76 @@ function checkSlider(v){
   }
 }
 
+function renderOrderPuzzle(){
+  const { occ, rng } = STATE;
+  const words = occ.orderWords || ['KAMU','SPESIAL','BANGET'];
+  const shuffled = shuffle(rng, words.map((w,i)=>({w,i})));
+  cardEl.innerHTML = `
+    ${renderDots()}
+    <p>Tap kata-kata di bawah sesuai urutan yang pas:</p>
+    <div class="answer-slot" id="orderSlot" style="font-size:15px;letter-spacing:1px;min-height:34px;"></div>
+    <div class="letters" id="orderWrap">
+      ${shuffled.map((o,idx)=>`<button class="letter-btn" style="width:auto;padding:0 12px;height:38px;font-size:13px;" id="ow${idx}" onclick="pickOrderWord(${idx},'${o.w}')">${o.w}</button>`).join('')}
+    </div>
+    <button class="btn hidden" id="continueBtn" onclick="nextStep()">Lanjut →</button>
+  `;
+  window.__orderAnswer = [];
+  window.__orderTarget = words;
+}
+function pickOrderWord(idx, w){
+  document.getElementById('ow'+idx).classList.add('used');
+  window.__orderAnswer.push(w);
+  document.getElementById('orderSlot').textContent = window.__orderAnswer.join(' ');
+  if(window.__orderAnswer.length === window.__orderTarget.length){
+    document.getElementById('continueBtn').classList.remove('hidden');
+  }
+}
+
+function renderTap(){
+  const { occ, order } = STATE;
+  const target = 12;
+  cardEl.innerHTML = `
+    ${renderDots()}
+    <p>${fillTemplate(occ.tapLabel ? occ.tapLabel(order.nama_penerima||'kamu') : 'Ketuk tombol ini!', order)}</p>
+    <div style="margin:22px 0;">
+      <button class="btn" id="tapBtn" style="font-size:20px;padding:22px 34px;" onclick="doTap()">👆 Ketuk!</button>
+    </div>
+    <div style="background:rgba(255,255,255,0.1); border-radius:999px; height:10px; overflow:hidden;">
+      <div id="tapBar" style="background:var(--accent); height:100%; width:0%;"></div>
+    </div>
+    <button class="btn hidden" id="continueBtn" onclick="nextStep()">Lanjut →</button>
+  `;
+  window.__tapCount = 0;
+  window.__tapTarget = target;
+}
+function doTap(){
+  window.__tapCount++;
+  const pct = Math.min(100, Math.round((window.__tapCount / window.__tapTarget) * 100));
+  document.getElementById('tapBar').style.width = pct + '%';
+  if(window.__tapCount >= window.__tapTarget){
+    document.getElementById('continueBtn').classList.remove('hidden');
+    document.getElementById('tapBtn').disabled = true;
+  }
+}
+
+function renderGaleri(){
+  const fotos = STATE.fotoUrls || [];
+  cardEl.innerHTML = `
+    ${renderDots()}
+    <p>Beberapa kenangan sebelum lanjut ke pesannya...</p>
+    <div class="galeri-scroll">
+      ${fotos.map(f=>`<img src="${f}" class="galeri-thumb">`).join('')}
+    </div>
+    <button class="btn" id="continueBtn" onclick="nextStep()">Lanjut →</button>
+  `;
+}
+
 function renderFinal(){
   const o = STATE.order;
-  const fotoHtml = o.foto_url ? `<img class="foto-preview" src="${o.foto_url}" alt="Foto kenangan">` : '';
+  const fotos = STATE.fotoUrls || [];
+  const fotoHtml = fotos.length
+    ? `<div class="galeri-grid">${fotos.map(f=>`<img src="${f}" class="galeri-grid-item">`).join('')}</div>`
+    : '';
   const audioHtml = o.musik_url
     ? `<audio controls src="${o.musik_url}"></audio>`
     : (o.musik_pilihan ? `<div class="music-tag">🎵 ${o.musik_pilihan}</div>` : '');
