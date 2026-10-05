@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pesanan Berhasil — Kado Digital</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{ --plum:#1B1035; --gold:#E8B94E; --cream:#FBF6EF; }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; font-family:'Segoe UI',Roboto,sans-serif; background:var(--plum); color:var(--cream);
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .card{
+    width:100%; max-width:420px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12);
+    border-radius:22px; padding:28px 22px; text-align:center;
+  }
+  h1{ font-size:21px; margin:0 0 10px; }
+  p{ line-height:1.6; opacity:0.85; margin:0; font-size:14.5px; }
+  .muted{ font-size:13px; opacity:0.6; }
+  .spinner{
+    width:34px; height:34px; border:3px solid rgba(255,255,255,0.15); border-top-color:var(--gold);
+    border-radius:50%; margin:20px auto; animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .link-box{
+    margin-top:18px; padding:12px 14px; background:rgba(255,255,255,0.06); border-radius:12px;
+    font-size:13px; word-break:break-all;
+  }
+  .btn{
+    display:inline-block; margin-top:12px; padding:13px 22px; border-radius:999px; border:none;
+    background:var(--gold); color:var(--plum); font-weight:700; font-size:14.5px; cursor:pointer; text-decoration:none;
+  }
+  .btn.secondary{ background:transparent; border:1.5px solid rgba(255,255,255,0.3); color:var(--cream); margin-left:8px; }
+  .qr-wrap{
+    margin:20px auto 6px; width:220px; padding:16px; background:#fff; border-radius:18px; position:relative;
+  }
+  .qr-wrap.frame-hati{ border:6px solid #E36397; }
+  .qr-wrap.frame-kucing{ border:6px solid #F2A65A; }
+  .qr-wrap.frame-bintang{ border:6px solid #E8B94E; }
+  .qr-badge{
+    position:absolute; top:-14px; right:-14px; width:34px; height:34px; border-radius:50%;
+    background:#fff; display:flex; align-items:center; justify-content:center; font-size:17px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.25);
+  }
+  .btn-row{ margin-top:14px; }
+  .error{ color:#f3a1a1; }
+</style>
+</head>
+<body>
+
+<div class="card" id="card">
+  <div class="spinner"></div>
+  <p>Mengecek status pembayaran...</p>
+  <p class="muted" style="margin-top:8px;">Biasanya cuma butuh beberapa detik.</p>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://aocgocdsufkfdemujisy.supabase.co".trim().replace(/[^\x00-\x7F]/g, '');
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvY2dvY2RzdWZrZmRlbXVqaXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MTQ1ODgsImV4cCI6MjEwNTA5MDU4OH0.3qT4WwMnpV-Q3zKjipFYaW-rdyEraaQXCc6z7mSiG_4".trim().replace(/[^\x00-\x7F]/g, '');
+
+  const params = new URLSearchParams(location.search);
+  const orderId = params.get('order_id');
+  const cardEl = document.getElementById('card');
+
+  const QR_EMOJI = { hati:'💖', kucing:'🐱', bintang:'⭐', polos:'' };
+  const QR_FRAME_CLASS = { hati:'frame-hati', kucing:'frame-kucing', bintang:'frame-bintang', polos:'' };
+
+  if(!orderId){
+    cardEl.innerHTML = '<p class="error">Order ID tidak ditemukan di link ini.</p>';
+  } else {
+    let attempts = 0;
+    checkStatus();
+
+    async function checkStatus(){
+      attempts++;
+      try{
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${orderId}&select=*`, {
+          headers:{
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+          }
+        });
+        const rows = await res.json();
+        if(rows && rows.length){
+          showSuccess(rows[0]);
+          return;
+        }
+      }catch(e){ /* coba lagi */ }
+
+      if(attempts < 15){
+        setTimeout(checkStatus, 2000);
+      } else {
+        cardEl.innerHTML = `
+          <p>Pembayaran belum terkonfirmasi otomatis. Tenang, kalau pembayaran kamu memang sukses, coba refresh halaman ini beberapa saat lagi.</p>
+          <p class="muted" style="margin-top:10px;">ID Pesanan: ${orderId}</p>
+          <button class="btn" onclick="location.reload()">Cek Lagi</button>
+        `;
+      }
+    }
+
+    function showSuccess(order){
+      const playLink = order.custom_slug
+        ? location.origin + '/k/' + order.custom_slug
+        : location.origin + '/play.html?id=' + order.id;
+
+      const frameClass = order.want_custom_qr ? (QR_FRAME_CLASS[order.qr_style] || '') : '';
+      const badgeEmoji = order.want_custom_qr ? (QR_EMOJI[order.qr_style] || '') : '';
+
+      cardEl.innerHTML = `
+        <h1>🎉 Pembayaran Berhasil!</h1>
+        <p>Kado kamu sudah siap. Kirim link atau QR di bawah ini ke penerimanya.</p>
+        <div class="link-box" id="linkBox">${playLink}</div>
+        <div class="btn-row">
+          <button class="btn" id="btnCopy">Salin Link</button>
+          <a class="btn secondary" id="btnWa" href="#" target="_blank">Bagikan via WhatsApp</a>
+        </div>
+        <div class="qr-wrap ${frameClass}" id="qrWrap">
+          ${badgeEmoji ? `<div class="qr-badge">${badgeEmoji}</div>` : ''}
+          <div id="qrcode"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn secondary" id="btnDownloadQr">Download QR</button>
+        </div>
+      `;
+
+      new QRCode(document.getElementById('qrcode'), {
+        text: playLink,
+        width: 188,
+        height: 188,
+        colorDark: '#1B1035',
+        colorLight: '#ffffff'
+      });
+
+      document.getElementById('btnCopy').onclick = function(){
+        navigator.clipboard.writeText(playLink);
+        this.textContent = 'Tersalin!';
+      };
+      document.getElementById('btnWa').href =
+        'https://wa.me/?text=' + encodeURIComponent('Ada kado buat kamu nih 🎁 ' + playLink);
+
+      document.getElementById('btnDownloadQr').onclick = function(){
+        setTimeout(()=>{
+          const canvas = document.querySelector('#qrcode canvas');
+          if(!canvas) return;
+          const link = document.createElement('a');
+          link.download = 'qr-kado-digital.png';
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        }, 100);
+      };
+    }
+  }
+</script>
+</body>
+</html>
