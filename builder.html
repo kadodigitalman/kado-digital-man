@@ -165,8 +165,9 @@
   </div>
 
   <div class="field">
-    <label>Upload Foto (opsional)</label>
-    <input type="file" id="inputFoto" accept="image/*">
+    <label>Upload Foto (opsional, maks 6)</label>
+    <input type="file" id="inputFoto" accept="image/*" multiple>
+    <div class="field-hint" id="fotoCountHint"></div>
   </div>
 
   <div class="field">
@@ -174,6 +175,26 @@
     <input type="file" id="inputMusikFile" accept="audio/*">
     <button type="button" class="btn-preview-audio" id="btnPreviewAudio" style="display:none;">▶ Dengar dulu</button>
     <audio id="localAudioPreview" style="display:none;width:100%;margin-top:8px;" controls></audio>
+  </div>
+
+  <div class="field addon-box">
+    <label><input type="checkbox" id="inputAddonCustom"> QR Code & Nama Link Custom (+Rp2.000)</label>
+    <div class="field-hint">Dapat QR code bertema buat dibagikan, plus nama link sendiri (misal: /untuk-ica) — bukan kode acak.</div>
+    <div id="addonFields" style="display:none;margin-top:10px;">
+      <div class="field">
+        <label>Nama Link (huruf kecil, angka, strip)</label>
+        <input type="text" id="inputSlug" placeholder="misal: untuk-ica">
+      </div>
+      <div class="field">
+        <label>Gaya Bingkai QR</label>
+        <div class="style-grid" id="qrStyleGrid">
+          <div class="style-btn qr-style-btn" data-qr="polos">✨ Polos</div>
+          <div class="style-btn qr-style-btn" data-qr="hati">💖 Hati</div>
+          <div class="style-btn qr-style-btn" data-qr="kucing">🐱 Kucing</div>
+          <div class="style-btn qr-style-btn" data-qr="bintang">⭐ Bintang</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <button type="button" class="btn-simulasi" id="btnSimulasi">🔍 Lihat Simulasi Kado</button>
@@ -197,6 +218,10 @@
     { id:'anniversary', name:'Anniversary', desc:'Romantis & hangat', bg:'linear-gradient(135deg,#2B0F14,#D98A94)' },
     { id:'wisuda', name:'Wisuda', desc:'Formal & membanggakan', bg:'linear-gradient(135deg,#0E1A32,#E3B23C)' },
     { id:'maaf', name:'Permintaan Maaf', desc:'Lembut & tulus', bg:'linear-gradient(135deg,#2E3440,#A3B9A3)' },
+    { id:'cinta', name:'Nembak / Cinta', desc:'Berani & berdebar', bg:'linear-gradient(135deg,#3A0D1F,#E36397)' },
+    { id:'ldr', name:'LDR', desc:'Rindu & menguatkan', bg:'linear-gradient(135deg,#0F1F3D,#6FA8DC)' },
+    { id:'selamat', name:'Ucapan Selamat', desc:'Bangga & suportif', bg:'linear-gradient(135deg,#1A2E1A,#8FBF6A)' },
+    { id:'sembuh', name:'Semoga Cepat Sembuh', desc:'Peduli & menenangkan', bg:'linear-gradient(135deg,#14232B,#8FD1C7)' },
   ];
   const colors = ['#E8B94E','#D98A94','#7FA8D9','#A3B9A3','#C9B6E4','#F2A65A'];
   let state = { template:null, style:null, warna:null };
@@ -218,12 +243,41 @@
     if(preselect === t.id){ card.click(); }
   });
 
-  document.querySelectorAll('.style-btn').forEach(btn=>{
+  document.querySelectorAll('.style-btn[data-style]').forEach(btn=>{
     btn.onclick = ()=>{
       state.style = btn.dataset.style;
-      document.querySelectorAll('.style-btn').forEach(b=>b.classList.remove('selected'));
+      document.querySelectorAll('.style-btn[data-style]').forEach(b=>b.classList.remove('selected'));
       btn.classList.add('selected');
     };
+  });
+
+  // Toggle addon custom QR + nama link
+  const inputAddonCustom = document.getElementById('inputAddonCustom');
+  const addonFields = document.getElementById('addonFields');
+  inputAddonCustom.addEventListener('change', ()=>{
+    addonFields.style.display = inputAddonCustom.checked ? 'block' : 'none';
+  });
+  document.querySelectorAll('.qr-style-btn').forEach(btn=>{
+    btn.onclick = ()=>{
+      state.qrStyle = btn.dataset.qr;
+      document.querySelectorAll('.qr-style-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+    };
+  });
+
+  // Batasi upload foto maksimal 6
+  const inputFoto = document.getElementById('inputFoto');
+  const fotoCountHint = document.getElementById('fotoCountHint');
+  inputFoto.addEventListener('change', ()=>{
+    if(inputFoto.files.length > 6){
+      alert('Maksimal 6 foto ya. Pilih ulang fotonya.');
+      inputFoto.value = '';
+      fotoCountHint.textContent = '';
+    } else if(inputFoto.files.length > 0){
+      fotoCountHint.textContent = inputFoto.files.length + ' foto dipilih.';
+    } else {
+      fotoCountHint.textContent = '';
+    }
   });
 
   // Preview lokal file musik (langsung di form, tanpa upload)
@@ -260,7 +314,7 @@
       if(!e.data || e.data.type !== 'kado-preview-ready') return;
       window.removeEventListener('message', onReady);
 
-      const fotoFile = document.getElementById('inputFoto').files[0];
+      const fotoFiles = Array.from(document.getElementById('inputFoto').files).slice(0,6);
       const musikFile = document.getElementById('inputMusikFile').files[0];
 
       const previewOrder = {
@@ -273,7 +327,7 @@
         gaya_kata: state.style || 'Cool',
         warna_pilihan: state.warna || '#E8B94E',
         musik_pilihan: document.getElementById('inputMusik').value,
-        foto_url: fotoFile ? URL.createObjectURL(fotoFile) : null,
+        foto_urls: fotoFiles.map(f=>URL.createObjectURL(f)),
         musik_url: musikFile ? URL.createObjectURL(musikFile) : null
       };
       previewFrame.contentWindow.postMessage({ type:'kado-preview-data', order: previewOrder }, location.origin);
@@ -340,7 +394,17 @@
       statusEl.className='status-msg error'; statusEl.textContent='Pilih template dulu ya.'; return;
     }
 
-    const fotoFile = document.getElementById('inputFoto').files[0];
+    const wantCustom = inputAddonCustom.checked;
+    let slug = document.getElementById('inputSlug').value.trim().toLowerCase();
+    slug = slug.replace(/[^a-z0-9-]/g, '-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+    if(wantCustom && !slug){
+      statusEl.className='status-msg error'; statusEl.textContent='Isi nama link dulu, atau matikan opsi custom link.'; return;
+    }
+    if(wantCustom && !state.qrStyle){
+      statusEl.className='status-msg error'; statusEl.textContent='Pilih gaya bingkai QR dulu ya.'; return;
+    }
+
+    const fotoFiles = Array.from(document.getElementById('inputFoto').files).slice(0,6);
     const musikFile = document.getElementById('inputMusikFile').files[0];
     const newId = generateUUID();
 
@@ -354,14 +418,22 @@
       gaya_kata: state.style,
       warna_pilihan: state.warna,
       musik_pilihan: document.getElementById('inputMusik').value,
-      payment_status: 'pending'
+      payment_status: 'pending',
+      want_custom_qr: wantCustom,
+      custom_slug: wantCustom ? slug : null,
+      qr_style: wantCustom ? state.qrStyle : null
     };
 
     try{
-      if(fotoFile){
-        statusEl.className='status-msg';
-        statusEl.textContent='Mengunggah foto...';
-        payload.foto_url = await uploadFile(fotoFile, 'foto');
+      if(fotoFiles.length){
+        const urls = [];
+        for(let i=0;i<fotoFiles.length;i++){
+          statusEl.className='status-msg';
+          statusEl.textContent = `Mengunggah foto ${i+1}/${fotoFiles.length}...`;
+          urls.push(await uploadFile(fotoFiles[i], 'foto'));
+        }
+        payload.foto_urls = urls;
+        payload.foto_url = urls[0];
       }
       if(musikFile){
         statusEl.className='status-msg';
@@ -384,16 +456,17 @@
       if(!res.ok){
         const bodyText = await res.text();
         statusEl.className='status-msg error';
-        statusEl.textContent = 'GAGAL — status: ' + res.status + ' | url respons: ' + res.url + ' | isi respons: ' + bodyText.slice(0,300);
+        if(bodyText.includes('23505') || bodyText.toLowerCase().includes('duplicate')){
+          statusEl.textContent = 'Nama link "' + slug + '" udah dipakai orang lain. Coba nama lain ya.';
+        } else {
+          statusEl.textContent = 'GAGAL — status: ' + res.status + ' | isi respons: ' + bodyText.slice(0,300);
+        }
         return;
       }
 
-      const playLink = location.origin + '/play.html?id=' + newId;
       statusEl.className='status-msg success';
-      statusEl.innerHTML = 'BERHASIL! Pesanan tersimpan.<br><br>Link kado untuk dikirim ke penerima:<br>' +
-        '<a href="' + playLink + '" target="_blank" style="word-break:break-all;color:#1f6b34;">' + playLink + '</a>' +
-        '<br><br><button type="button" onclick="navigator.clipboard.writeText(\'' + playLink + '\');this.textContent=\'Tersalin!\'" style="margin-top:8px;padding:8px 14px;border-radius:8px;border:1px solid #1f6b34;background:#fff;color:#1f6b34;font-weight:600;">Salin Link</button>' +
-        '<br><br><button type="button" id="btnBayar" style="padding:10px 18px;border-radius:8px;border:none;background:#1B1035;color:#fff;font-weight:700;">Bayar Sekarang</button>' +
+      statusEl.innerHTML = 'Pesanan tersimpan! Lanjut ke pembayaran ya — link kado bakal muncul otomatis setelah pembayaran berhasil.<br><br>' +
+        '<button type="button" id="btnBayar" style="padding:12px 20px;border-radius:8px;border:none;background:#1B1035;color:#fff;font-weight:700;">Bayar Sekarang</button>' +
         '<span id="bayarStatus" style="display:block;margin-top:6px;font-size:13px;"></span>';
 
       document.getElementById('btnBayar').addEventListener('click', async ()=>{
