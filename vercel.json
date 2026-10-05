@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/k/:slug", "destination": "/play.html" }
+  ]
+}
